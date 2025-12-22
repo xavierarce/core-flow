@@ -46,3 +46,86 @@ core-flow/
     │   └── main.ts         # Application Entry Point
     ├── docker-compose.yml  # Database Container Configuration
     └── prisma.config.ts    # Prisma 7 Configuration (Seed & Drivers)
+```
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+* **Node.js** (v18 or higher)
+* **Docker Desktop** (Must be running)
+
+### 2. Infrastructure Setup
+Start the PostgreSQL database container:
+```bash
+# From the root /core-flow folder
+docker-compose up -d
+```
+
+### 3. Backend Installation
+Navigate to the server directory and install dependencies (including the Prisma 7 specific drivers):
+```bash
+cd server
+npm install
+```
+
+### 4. Environment Configuration
+Ensure your `.env` file in `/server` is configured strictly for the connection pool:
+```env
+# /server/.env
+DATABASE_URL="postgresql://admin:password123@localhost:5432/core_flow_db?schema=public"
+```
+
+### 5. Database Initialization
+Run the migrations to create the tables and generate the Prisma Client:
+```bash
+# Apply schema to DB and generate type definitions
+npx prisma migrate dev --name init
+```
+
+### 6. Seeding Data (The "Money Injection")
+Inject the initial wealth data (IBKR Trading + Emergency Fund):
+```bash
+# This uses the configuration in prisma.config.ts
+npx prisma db seed
+```
+*Expected Output:*
+> `✅ Created: Interactive Brokers ($2500)`
+> `✅ Created: Livret A / LEP (€4000)`
+
+---
+
+## ⚡️ Running the Server
+
+Start the NestJS development server:
+```bash
+npm run start:dev
+```
+
+* **API Health Check:** Open [http://localhost:3000](http://localhost:3000)
+* **View Accounts:** Open [http://localhost:3000/accounts](http://localhost:3000/accounts)
+
+---
+
+## 🧠 Key Commands Cheat Sheet
+
+| Command | Description |
+| :--- | :--- |
+| `npm run start:dev` | Starts the server in watch mode (auto-reload). |
+| `npx prisma studio` | Opens a visual GUI to edit database rows manually. |
+| `npx prisma generate` | Re-compiles the Prisma Client (Run this if types break). |
+| `docker-compose down` | Stops the database container. |
+
+---
+
+## 🗺 Roadmap
+
+- [x] **Phase 1: Backend Core** (Completed)
+    - [x] Docker Database Setup
+    - [x] Prisma 7 Connection Pooling
+    - [x] CRUD API for Accounts
+- [ ] **Phase 2: Frontend Dashboard** (Next)
+    - [ ] Next.js Setup
+    - [ ] Real-time data fetching
+    - [ ] Net Worth Visualization Chart
+- [ ] **Phase 3: Automation**
+    - [ ] Python Scripts to scrape real bank data.
