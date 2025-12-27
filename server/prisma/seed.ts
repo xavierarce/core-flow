@@ -1,4 +1,4 @@
-import { PrismaClient, AccountType } from '@prisma/client';
+import { PrismaClient, AccountType, TransactionSource } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -57,6 +57,7 @@ async function main() {
       description: 'Tech Corp Salary',
       category: 'Income',
       date: new Date('2023-11-28'),
+      source: TransactionSource.BANK,
       isRecurring: true,
     },
   });
@@ -69,6 +70,7 @@ async function main() {
       description: 'Rent Paris 11e',
       category: 'Housing',
       date: new Date('2023-11-05'),
+      source: TransactionSource.BANK,
       isRecurring: true,
     },
   });
@@ -80,6 +82,7 @@ async function main() {
       description: 'Carrefour Market',
       category: 'Food',
       date: new Date('2023-11-12'),
+      source: TransactionSource.BANK,
     },
   });
 
@@ -93,6 +96,7 @@ async function main() {
       description: 'Tech Corp Salary',
       category: 'Income',
       date: new Date('2023-12-28'),
+      source: TransactionSource.BANK,
       isRecurring: true,
     },
   });
@@ -104,6 +108,7 @@ async function main() {
       description: 'Freelance Frontend Mission',
       category: 'Side Hustle',
       date: new Date('2023-12-15'),
+      source: TransactionSource.BANK,
     },
   });
 
@@ -115,6 +120,7 @@ async function main() {
       description: 'McDonalds Late Night',
       category: 'Food',
       date: new Date('2023-12-20'),
+      source: TransactionSource.BANK,
     },
   });
 
@@ -125,6 +131,7 @@ async function main() {
       description: 'Uber Ride',
       category: 'Transport',
       date: new Date('2023-12-21'),
+      source: TransactionSource.BANK,
     },
   });
 
@@ -135,6 +142,7 @@ async function main() {
       description: 'Christmas Gifts',
       category: 'Shopping',
       date: new Date('2023-12-23'),
+      source: TransactionSource.BANK,
     },
   });
 
@@ -147,6 +155,7 @@ async function main() {
       category: 'Entertainment',
       isRecurring: true,
       date: new Date('2023-12-01'),
+      source: TransactionSource.BANK,
     },
   });
 
@@ -158,6 +167,7 @@ async function main() {
       category: 'Software',
       isRecurring: true,
       date: new Date('2023-12-02'),
+      source: TransactionSource.BANK,
     },
   });
 

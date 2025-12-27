@@ -99,4 +99,5 @@ Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 
 
 Displaying Architecture
-find . \( -name node_modules -o -name .git \) -prune -o -print
+
+find . \( -name node_modules -o -name .git -o -name .next \) -prune -o -print

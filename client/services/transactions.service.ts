@@ -5,10 +5,11 @@ export interface CreateTransactionParams {
   description: string;
   accountId: string;
   isRecurring: boolean;
-  date: string; // ISO date string
+  date: string;
 }
 
 export const TransactionsService = {
+  // Create is fine, it uses fetch
   async create(data: CreateTransactionParams) {
     if (!API_URL) throw new Error("API URL missing");
 
@@ -18,10 +19,21 @@ export const TransactionsService = {
       body: JSON.stringify(data),
     });
 
+    if (!res.ok) throw new Error("Failed to create transaction");
+    return res.json();
+  },
+
+  async delete(id: string) {
+    if (!API_URL) throw new Error("API URL missing");
+
+    const res = await fetch(`${API_URL}/transactions/${id}`, {
+      method: "DELETE",
+    });
+
     if (!res.ok) {
-      throw new Error("Failed to create transaction");
+      throw new Error("Failed to delete transaction");
     }
 
-    return res.json();
+    return true;
   },
 };

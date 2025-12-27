@@ -5,6 +5,7 @@ export interface Transaction {
   category: string | null; // Can be null in your DB
   date: string;
   isRecurring: boolean;
+  source: "MANUAL" | "BANK"; // <--- Add this
 }
 
 export interface Account {
