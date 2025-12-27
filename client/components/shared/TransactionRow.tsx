@@ -7,6 +7,7 @@ interface TransactionRowProps {
 
 export const TransactionRow = ({ transaction }: TransactionRowProps) => {
   const isNegative = Number(transaction.amount) < 0;
+  const dateObj = new Date(transaction.date);
 
   return (
     <div className="flex justify-between items-center text-sm">
@@ -22,7 +23,16 @@ export const TransactionRow = ({ transaction }: TransactionRowProps) => {
           )}
         </div>
         <span className="text-[10px] text-slate-400">
-          {new Date(transaction.date).toLocaleDateString()}
+          {dateObj.toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })}{" "}
+          at{" "}
+          {dateObj.toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </span>
       </div>
 
