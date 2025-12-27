@@ -14,19 +14,20 @@ export class AccountsService {
     });
   }
 
-  async findAll(query?: GetAccountsQueryDto) {
-    const orderBy = query?.orderBy || 'name';
-    const txOrder = query?.transactionsOrder || 'desc';
-
+  async findAll(start?: string, end?: string) {
     return this.prisma.account.findMany({
       orderBy: {
-        [orderBy]: 'asc',
+        name: 'asc',
       },
       include: {
         transactions: {
-          orderBy: {
-            date: txOrder,
+          where: {
+            date: {
+              gte: start ? new Date(start) : undefined,
+              lte: end ? new Date(end) : undefined,
+            },
           },
+          orderBy: { date: 'desc' },
         },
       },
     });

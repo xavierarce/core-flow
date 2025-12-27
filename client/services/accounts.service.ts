@@ -7,23 +7,18 @@ export const AccountsService = {
    * Fetches all accounts with their transactions.
    * Mirrors the NestJS AccountsController.findAll()
    */
-  getAll: async (
-    orderBy: "name" | "balance" = "name",
-    transactionsOrder: "asc" | "desc" = "desc"
-  ): Promise<Account[]> => {
-    if (!API_URL) throw new Error("API URL missing");
+  async getAll(start?: string, end?: string) {
+    // Build the URL with query params
+    const params = new URLSearchParams();
+    if (start) params.append("start", start);
+    if (end) params.append("end", end);
 
-    const params = new URLSearchParams({
-      orderBy,
-      transactionsOrder,
+    const res = await fetch(`${API_URL}/accounts?${params.toString()}`, {
+      cache: "no-store", // Ensure fresh data on every request
     });
 
-    const res = await fetch(`${API_URL}/accounts?${params}`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) throw new Error("API Error");
-    return await res.json();
+    if (!res.ok) throw new Error("Failed to fetch accounts");
+    return res.json();
   },
 
   /**

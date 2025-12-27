@@ -2,10 +2,10 @@ export interface Transaction {
   id: string;
   amount: string; // Decimal comes as string from JSON APIs usually
   description: string;
-  category: string | null; // Can be null in your DB
+  category?: string;
   date: string;
-  isRecurring: boolean;
-  source: "MANUAL" | "BANK"; // <--- Add this
+  isRecurring?: boolean;
+  source?: "MANUAL" | "BANK";
 }
 
 export interface Account {

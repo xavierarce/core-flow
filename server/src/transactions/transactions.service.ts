@@ -39,8 +39,18 @@ export class TransactionsService {
     return transaction;
   }
 
-  findAll() {
+  findAll(start?: string, end?: string) {
+    const where: any = {};
+
+    if (start && end) {
+      where.date = {
+        gte: new Date(start), // Greater than or equal to Start Date
+        lte: new Date(end), // Less than or equal to End Date
+      };
+    }
+
     return this.prisma.transaction.findMany({
+      where,
       include: { account: true },
       orderBy: { date: 'desc' },
     });

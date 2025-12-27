@@ -46,7 +46,7 @@ async function main() {
 
   // 3. INJECT TRANSACTIONS
 
-  // --- NOVEMBER (Previous Month) ---
+  // --- October (Previous Month) ---
   // Helps visualize trends in the Bar Chart
 
   // Income 💰
@@ -56,7 +56,7 @@ async function main() {
       amount: 3200.0,
       description: 'Tech Corp Salary',
       category: 'Income',
-      date: new Date('2023-11-28'),
+      date: new Date('2025-10-28'),
       source: TransactionSource.BANK,
       isRecurring: true,
     },
@@ -69,7 +69,46 @@ async function main() {
       amount: -850.0,
       description: 'Rent Paris 11e',
       category: 'Housing',
-      date: new Date('2023-11-05'),
+      date: new Date('2025-10-05'),
+      source: TransactionSource.BANK,
+      isRecurring: true,
+    },
+  });
+
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: -100.54,
+      description: 'Justine Anniversaire',
+      category: 'Food',
+      date: new Date('2025-10-12'),
+      source: TransactionSource.BANK,
+    },
+  });
+  // --- NOVEMBER (Previous Month) ---
+  // Helps visualize trends in the Bar Chart
+
+  // Income 💰
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: 3200.0,
+      description: 'Tech Corp Salary',
+      category: 'Income',
+      date: new Date('2025-11-28'),
+      source: TransactionSource.BANK,
+      isRecurring: true,
+    },
+  });
+
+  // Expenses 💸
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: -850.0,
+      description: 'Rent Paris 11e',
+      category: 'Housing',
+      date: new Date('2025-11-05'),
       source: TransactionSource.BANK,
       isRecurring: true,
     },
@@ -81,7 +120,7 @@ async function main() {
       amount: -65.4,
       description: 'Carrefour Market',
       category: 'Food',
-      date: new Date('2023-11-12'),
+      date: new Date('2025-11-12'),
       source: TransactionSource.BANK,
     },
   });
@@ -95,7 +134,7 @@ async function main() {
       amount: 3200.0,
       description: 'Tech Corp Salary',
       category: 'Income',
-      date: new Date('2023-12-28'),
+      date: new Date('2025-12-28'),
       source: TransactionSource.BANK,
       isRecurring: true,
     },
@@ -107,7 +146,7 @@ async function main() {
       amount: 450.0,
       description: 'Freelance Frontend Mission',
       category: 'Side Hustle',
-      date: new Date('2023-12-15'),
+      date: new Date('2025-12-15'),
       source: TransactionSource.BANK,
     },
   });
@@ -119,7 +158,7 @@ async function main() {
       amount: -15.5,
       description: 'McDonalds Late Night',
       category: 'Food',
-      date: new Date('2023-12-20'),
+      date: new Date('2025-12-20'),
       source: TransactionSource.BANK,
     },
   });
@@ -130,7 +169,7 @@ async function main() {
       amount: -45.0,
       description: 'Uber Ride',
       category: 'Transport',
-      date: new Date('2023-12-21'),
+      date: new Date('2025-12-21'),
       source: TransactionSource.BANK,
     },
   });
@@ -141,7 +180,7 @@ async function main() {
       amount: -120.0,
       description: 'Christmas Gifts',
       category: 'Shopping',
-      date: new Date('2023-12-23'),
+      date: new Date('2025-12-23'),
       source: TransactionSource.BANK,
     },
   });
@@ -154,7 +193,7 @@ async function main() {
       description: 'Netflix Premium',
       category: 'Entertainment',
       isRecurring: true,
-      date: new Date('2023-12-01'),
+      date: new Date('2025-12-01'),
       source: TransactionSource.BANK,
     },
   });
@@ -166,7 +205,7 @@ async function main() {
       description: 'ChatGPT Plus',
       category: 'Software',
       isRecurring: true,
-      date: new Date('2023-12-02'),
+      date: new Date('2025-12-02'),
       source: TransactionSource.BANK,
     },
   });

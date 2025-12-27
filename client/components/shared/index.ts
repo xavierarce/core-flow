@@ -11,3 +11,4 @@ export * from "./AppButton";
 export * from "./AppDialog";
 export * from "./AppCheckbox";
 export * from "./AppLabel";
+export * from "./MonthFilter";
