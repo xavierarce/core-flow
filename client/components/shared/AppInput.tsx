@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { AppLabel } from "./AppLabel";
 
 interface AppInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -11,9 +11,9 @@ export const AppInput = ({ label, id, className, ...props }: AppInputProps) => {
 
   return (
     <div className={`grid gap-2 ${className}`}>
-      <Label htmlFor={inputId} className="text-slate-600 font-semibold">
+      <AppLabel htmlFor={inputId} className="text-slate-600 font-semibold">
         {label}
-      </Label>
+      </AppLabel>
       <Input
         id={inputId}
         className="focus-visible:ring-emerald-500" // Custom Focus Color

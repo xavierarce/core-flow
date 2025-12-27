@@ -1,4 +1,3 @@
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -6,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AppLabel } from "./AppLabel";
 
 interface Option {
   id: string;
@@ -29,7 +29,7 @@ export const AppSelect = ({
 }: AppSelectProps) => {
   return (
     <div className="grid gap-2">
-      <Label className="text-slate-600 font-semibold">{label}</Label>
+      <AppLabel className="text-slate-600 font-semibold">{label}</AppLabel>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="focus:ring-emerald-500">
           <SelectValue placeholder={placeholder} />

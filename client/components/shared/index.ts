@@ -9,3 +9,5 @@ export * from "./AppInput";
 export * from "./AppSelect";
 export * from "./AppButton";
 export * from "./AppDialog";
+export * from "./AppCheckbox";
+export * from "./AppLabel";

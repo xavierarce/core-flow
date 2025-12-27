@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { TransactionsService } from "@/services/transactions.service";
 import { Account } from "@/types";
 
-import { AppInput, AppSelect, AppButton, AppDialog } from "./";
+import { AppInput, AppSelect, AppButton, AppDialog, AppCheckbox } from "./";
 
 interface AddTransactionDialogProps {
   accounts: Account[];
@@ -99,22 +97,15 @@ export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
           required
         />
 
-        {/* Checkbox Wrapper logic could be added to AppInput later if needed */}
-        <div className="flex items-center space-x-2 bg-slate-100 p-2 rounded-md border border-slate-100">
-          <Checkbox
-            id="recurring"
-            checked={formData.isRecurring}
-            onCheckedChange={(checked) =>
-              setFormData({ ...formData, isRecurring: checked as boolean })
-            }
-          />
-          <Label
-            htmlFor="recurring"
-            className="text-sm font-medium cursor-pointer"
-          >
-            This is a recurring subscription
-          </Label>
-        </div>
+        {/* ✅ The New Clean Checkbox */}
+        <AppCheckbox
+          id="recurring"
+          label="This is a recurring subscription"
+          checked={formData.isRecurring}
+          onCheckedChange={(checked) =>
+            setFormData({ ...formData, isRecurring: checked })
+          }
+        />
 
         <AppButton
           type="submit"
