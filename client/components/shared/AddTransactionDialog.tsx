@@ -9,22 +9,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { TransactionsService } from "@/services/transactions.service";
 import { Account } from "@/types";
 
+// Import our new shared components
+import { AppInput, AppSelect, AppButton } from "./"; // from index
+
 interface AddTransactionDialogProps {
-  accounts: Account[]; // We need the list of accounts to populate the dropdown
+  accounts: Account[];
 }
 
 export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
@@ -35,8 +29,8 @@ export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
   const [formData, setFormData] = useState({
     description: "",
     amount: "",
-    accountId: accounts[0]?.id || "", // Default to first account
-    date: new Date().toISOString().split("T")[0], // Today yyyy-mm-dd
+    accountId: accounts[0]?.id || "",
+    date: new Date().toISOString().split("T")[0],
     isRecurring: false,
   });
 
@@ -47,13 +41,12 @@ export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
     try {
       await TransactionsService.create({
         ...formData,
-        amount: parseFloat(formData.amount), // Convert string to number
+        amount: parseFloat(formData.amount),
         date: new Date(formData.date).toISOString(),
       });
-
-      setOpen(false); // Close modal
-      setFormData({ ...formData, description: "", amount: "" }); // Reset form
-      router.refresh(); // ✨ Refresh Server Components to show new data instantly!
+      setOpen(false);
+      setFormData({ ...formData, description: "", amount: "" });
+      router.refresh();
     } catch (error) {
       console.error(error);
       alert("Failed to save transaction");
@@ -62,86 +55,68 @@ export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
     }
   };
 
+  // Convert accounts to the format AppSelect expects
+  const accountOptions = accounts.map((acc) => ({
+    id: acc.id,
+    label: acc.name,
+  }));
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-slate-900 hover:bg-slate-800 text-white">
-          + Add Transaction
-        </Button>
+        <AppButton variantType="secondary">+ Add Transaction</AppButton>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add Transaction</DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          {/* Description */}
-          <div className="grid gap-2">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              placeholder="e.g. Grocery Store"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              required
-            />
-          </div>
+          {/* 1. Description */}
+          <AppInput
+            label="Description"
+            placeholder="e.g. Grocery Store"
+            value={formData.description}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
+            required
+          />
 
-          {/* Amount & Account Row */}
+          {/* 2. Amount & Account (Side by Side) */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="amount">Amount (€)</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                placeholder="-15.00"
-                value={formData.amount}
-                onChange={(e) =>
-                  setFormData({ ...formData, amount: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="account">Account</Label>
-              <Select
-                value={formData.accountId}
-                onValueChange={(val) =>
-                  setFormData({ ...formData, accountId: val })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id}>
-                      {acc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Date */}
-          <div className="grid gap-2">
-            <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={formData.date}
+            <AppInput
+              label="Amount (€)"
+              type="number"
+              step="0.01"
+              placeholder="-15.00"
+              value={formData.amount}
               onChange={(e) =>
-                setFormData({ ...formData, date: e.target.value })
+                setFormData({ ...formData, amount: e.target.value })
               }
               required
             />
+
+            <AppSelect
+              label="Account"
+              value={formData.accountId}
+              onChange={(val) => setFormData({ ...formData, accountId: val })}
+              options={accountOptions}
+            />
           </div>
 
-          {/* Recurring Checkbox */}
-          <div className="flex items-center space-x-2">
+          {/* 3. Date */}
+          <AppInput
+            label="Date"
+            type="date"
+            value={formData.date}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            required
+          />
+
+          {/* 4. Recurring (Checkbox is simple enough to leave native for now, or wrap it if you use it often) */}
+          <div className="flex items-center space-x-2 bg-slate-100 p-2 rounded-md border border-slate-100">
             <Checkbox
               id="recurring"
               checked={formData.isRecurring}
@@ -151,19 +126,20 @@ export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
             />
             <Label
               htmlFor="recurring"
-              className="text-sm font-medium leading-none"
+              className="text-sm font-medium cursor-pointer"
             >
               This is a recurring subscription
             </Label>
           </div>
 
-          <Button
+          <AppButton
             type="submit"
             disabled={isLoading}
-            className="mt-4 w-full bg-emerald-600 hover:bg-emerald-700"
+            variantType="primary"
+            className="mt-2 w-full"
           >
             {isLoading ? "Saving..." : "Save Transaction"}
-          </Button>
+          </AppButton>
         </form>
       </DialogContent>
     </Dialog>
