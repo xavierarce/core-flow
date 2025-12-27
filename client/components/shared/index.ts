@@ -1,4 +1,5 @@
 export * from "./AppCard";
 export * from "./AppBadge";
 export * from "./TransactionRow";
-export * from "./TransactionList"; // <--- Add this
+export * from "./TransactionList";
+export * from "./WealthChart"; // <--- Add this
