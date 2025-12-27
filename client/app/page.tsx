@@ -3,7 +3,8 @@ import {
   AppCard,
   TransactionList,
   WealthChart,
-  CashFlowChart, // Import it
+  CashFlowChart,
+  AddTransactionDialog,
 } from "@/components/shared";
 import { calculateMonthlyCashFlow } from "@/lib/finance.utils"; // Import helper
 
@@ -30,13 +31,16 @@ const Home = async () => {
           </h1>
           <p className="text-slate-500 text-sm">Welcome back, Xavier</p>
         </div>
-        <div className="text-right">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Total Net Worth
-          </p>
-          <p className="text-4xl font-black text-emerald-600">
-            €{totalWealth.toLocaleString()}
-          </p>
+        <div className="flex flex-col items-end gap-4">
+          <div className="text-right">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              Total Net Worth
+            </p>
+            <p className="text-4xl font-black text-emerald-600">
+              €{totalWealth.toLocaleString()}
+            </p>
+            <AddTransactionDialog accounts={accounts} />
+          </div>
         </div>
       </div>
 
