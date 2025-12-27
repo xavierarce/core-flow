@@ -2,9 +2,7 @@ import { PrismaClient, AccountType } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-// 1. Configuration de la connexion "Industrielle"
 const connectionString = `${process.env.DATABASE_URL}`;
-
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
@@ -12,16 +10,16 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('🌱 Start seeding...');
 
-  // 2. Nettoyage de la base
+  // 1. Clean DB
   try {
-    await prisma.account.deleteMany(); // On vide la table Accounts
+    await prisma.transaction.deleteMany(); // Delete transactions first (foreign key)
+    await prisma.account.deleteMany();
     console.log('🧹 Database cleared');
   } catch (e) {
-    // On ignore l'erreur si la table n'existe pas encore (premier run)
-    console.log('⚠️ No data to clear or table issue');
+    console.log('⚠️ First run, nothing to clear.');
   }
 
-  // 3. Création du Compte Trading
+  // 2. Create Trading Account
   const tradingAccount = await prisma.account.create({
     data: {
       name: 'Interactive Brokers',
@@ -35,20 +33,66 @@ async function main() {
     `✅ Created: ${tradingAccount.name} ($${tradingAccount.balance})`,
   );
 
-  // 4. Création du Fonds d'Urgence
-  const savingsAccount = await prisma.account.create({
+  // 3. Create Main Bank Account
+  const bank = await prisma.account.create({
     data: {
-      name: 'Livret A / LEP',
-      institution: 'SG Bank',
-      balance: 4000.0,
+      name: 'Compte Courant',
+      institution: 'Société Générale',
+      balance: 1250.0,
       currency: 'EUR',
-      type: AccountType.SAVINGS,
+      type: AccountType.CASH,
     },
   });
-  console.log(
-    `✅ Created: ${savingsAccount.name} (€${savingsAccount.balance})`,
-  );
 
+  console.log('✅ Accounts created.');
+
+  // 4. INJECT TRANSACTIONS (The fun part)
+
+  // A. Wasted Money (The "Wants")
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: -15.5,
+      description: 'McDonalds Paris',
+      category: 'Food',
+      date: new Date('2023-12-20'),
+    },
+  });
+
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: -45.0,
+      description: 'Uber Ride Night',
+      category: 'Transport',
+      date: new Date('2023-12-21'),
+    },
+  });
+
+  // B. The "Subscription" (Recurring)
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: -13.99,
+      description: 'Netflix Premium',
+      category: 'Entertainment',
+      isRecurring: true, // <--- This allows us to track it!
+      date: new Date('2023-12-01'),
+    },
+  });
+
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: -29.99,
+      description: 'ChatGPT Plus',
+      category: 'Software',
+      isRecurring: true,
+      date: new Date('2023-12-02'),
+    },
+  });
+
+  console.log('✅ Transactions injected.');
   console.log('🚀 Seeding finished.');
 }
 
@@ -59,6 +103,6 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-    // Important: On ferme aussi le pool de connexion du script
+    console.log('Closing connexion pool');
     await pool.end();
   });
