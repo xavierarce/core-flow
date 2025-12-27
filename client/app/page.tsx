@@ -1,23 +1,29 @@
 import { AccountsService } from "@/services/accounts.service";
-import { AppCard, TransactionList, WealthChart } from "@/components/shared"; // Import WealthChart
+import {
+  AppCard,
+  TransactionList,
+  WealthChart,
+  CashFlowChart, // Import it
+} from "@/components/shared";
+import { calculateMonthlyCashFlow } from "@/lib/finance.utils"; // Import helper
 
-/**
- * Wealth Dashboard
- */
 const Home = async () => {
   const accounts = await AccountsService.getAll();
   const totalWealth = AccountsService.calculateNetWorth(accounts);
 
-  // Prepare data for the chart
-  const chartData = accounts.map((acc) => ({
+  // 1. Prepare Pie Chart Data
+  const wealthData = accounts.map((acc) => ({
     name: acc.name,
     value: parseFloat(acc.balance),
   }));
 
+  // 2. Prepare Bar Chart Data
+  const cashFlowData = calculateMonthlyCashFlow(accounts);
+
   return (
     <main className="min-h-screen bg-slate-50/50 p-8">
       {/* Header */}
-      <div className="max-w-5xl mx-auto mb-10 flex justify-between items-end">
+      <div className="max-w-6xl mx-auto mb-10 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             Dashboard
@@ -34,25 +40,23 @@ const Home = async () => {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto grid gap-6">
-        {/* Row 1: The Chart (Full Width) */}
+      <div className="max-w-6xl mx-auto grid gap-6">
+        {/* Row 1: The Analytics Section (Charts) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Chart takes up 1 column on large screens, or maybe logic to be flexible */}
+          {/* Pie Chart (1/3 width) */}
           <div className="md:col-span-1">
-            <WealthChart data={chartData} />
+            <WealthChart data={wealthData} />
           </div>
 
-          {/* We can leave space for other widgets later, or make chart full width */}
-          <div className="md:col-span-2 flex items-center justify-center bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
-            <p className="text-slate-400 text-sm italic">
-              More widgets coming soon...
-            </p>
+          {/* Bar Chart (2/3 width) */}
+          <div className="md:col-span-2">
+            <CashFlowChart data={cashFlowData} />
           </div>
         </div>
 
         {/* Row 2: Account List */}
         <h2 className="text-xl font-bold text-slate-800 mt-4">Your Accounts</h2>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {accounts.map((account) => (
             <AppCard
               key={account.id}

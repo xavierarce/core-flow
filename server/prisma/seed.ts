@@ -12,33 +12,31 @@ async function main() {
 
   // 1. Clean DB
   try {
-    await prisma.transaction.deleteMany(); // Delete transactions first (foreign key)
+    await prisma.transaction.deleteMany();
     await prisma.account.deleteMany();
     console.log('🧹 Database cleared');
   } catch (e) {
     console.log('⚠️ First run, nothing to clear.');
   }
 
-  // 2. Create Trading Account
+  // 2. Create Accounts
+  // A. Investment Account (Growing wealth)
   const tradingAccount = await prisma.account.create({
     data: {
-      name: 'Interactive Brokers',
-      institution: 'IBKR',
-      balance: 2500.0,
+      name: 'Etoro',
+      institution: 'EToro',
+      balance: 2500.0, // Let's bump this up a bit ;)
       currency: 'USD',
       type: AccountType.INVESTMENT,
     },
   });
-  console.log(
-    `✅ Created: ${tradingAccount.name} ($${tradingAccount.balance})`,
-  );
 
-  // 3. Create Main Bank Account
+  // B. Main Checking Account (Daily Driver)
   const bank = await prisma.account.create({
     data: {
       name: 'Compte Courant',
       institution: 'Société Générale',
-      balance: 1250.0,
+      balance: 4250.0, // Healthy buffer
       currency: 'EUR',
       type: AccountType.CASH,
     },
@@ -46,14 +44,75 @@ async function main() {
 
   console.log('✅ Accounts created.');
 
-  // 4. INJECT TRANSACTIONS (The fun part)
+  // 3. INJECT TRANSACTIONS
 
-  // A. Wasted Money (The "Wants")
+  // --- NOVEMBER (Previous Month) ---
+  // Helps visualize trends in the Bar Chart
+
+  // Income 💰
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: 3200.0,
+      description: 'Tech Corp Salary',
+      category: 'Income',
+      date: new Date('2023-11-28'),
+      isRecurring: true,
+    },
+  });
+
+  // Expenses 💸
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: -850.0,
+      description: 'Rent Paris 11e',
+      category: 'Housing',
+      date: new Date('2023-11-05'),
+      isRecurring: true,
+    },
+  });
+
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: -65.4,
+      description: 'Carrefour Market',
+      category: 'Food',
+      date: new Date('2023-11-12'),
+    },
+  });
+
+  // --- DECEMBER (Current Month) ---
+
+  // Income 💰
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: 3200.0,
+      description: 'Tech Corp Salary',
+      category: 'Income',
+      date: new Date('2023-12-28'),
+      isRecurring: true,
+    },
+  });
+
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: 450.0,
+      description: 'Freelance Frontend Mission',
+      category: 'Side Hustle',
+      date: new Date('2023-12-15'),
+    },
+  });
+
+  // Expenses 💸
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
       amount: -15.5,
-      description: 'McDonalds Paris',
+      description: 'McDonalds Late Night',
       category: 'Food',
       date: new Date('2023-12-20'),
     },
@@ -63,20 +122,30 @@ async function main() {
     data: {
       accountId: bank.id,
       amount: -45.0,
-      description: 'Uber Ride Night',
+      description: 'Uber Ride',
       category: 'Transport',
       date: new Date('2023-12-21'),
     },
   });
 
-  // B. The "Subscription" (Recurring)
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
+      amount: -120.0,
+      description: 'Christmas Gifts',
+      category: 'Shopping',
+      date: new Date('2023-12-23'),
+    },
+  });
+
+  // Subscriptions 🔄
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
       amount: -13.99,
       description: 'Netflix Premium',
       category: 'Entertainment',
-      isRecurring: true, // <--- This allows us to track it!
+      isRecurring: true,
       date: new Date('2023-12-01'),
     },
   });
@@ -84,7 +153,7 @@ async function main() {
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
-      amount: -29.99,
+      amount: -22.0,
       description: 'ChatGPT Plus',
       category: 'Software',
       isRecurring: true,
@@ -92,7 +161,7 @@ async function main() {
     },
   });
 
-  console.log('✅ Transactions injected.');
+  console.log('✅ Transactions injected (Nov & Dec).');
   console.log('🚀 Seeding finished.');
 }
 
@@ -103,6 +172,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-    console.log('Closing connexion pool');
     await pool.end();
   });
