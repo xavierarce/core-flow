@@ -14,7 +14,11 @@ export class AccountsService {
   }
 
   findAll() {
-    return this.prisma.account.findMany();
+    return this.prisma.account.findMany({
+      include: {
+        transactions: true,
+      },
+    });
   }
 
   findOne(id: string) {
