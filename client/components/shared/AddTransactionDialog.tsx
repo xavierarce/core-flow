@@ -38,7 +38,7 @@ export function AddTransactionDialog({
         ...formData,
         amount: parseFloat(formData.amount),
         date: new Date(formData.date).toISOString(),
-        // categoryId is already in formData, so it will be sent automatically
+        categoryId: formData.categoryId || undefined,
       });
 
       setOpen(false);

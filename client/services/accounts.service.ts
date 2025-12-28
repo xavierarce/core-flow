@@ -26,5 +26,5 @@ export const AccountsService = {
    * Business logic stays out of the UI!
    */
   calculateNetWorth: (accounts: Account[]): number =>
-    accounts.reduce((sum, acc) => sum + parseFloat(acc.balance), 0),
+    accounts.reduce((sum, acc) => sum + Number(acc.balance), 0),
 };

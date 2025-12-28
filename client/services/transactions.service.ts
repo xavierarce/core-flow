@@ -5,6 +5,7 @@ export interface CreateTransactionParams {
   description: string;
   accountId: string;
   isRecurring: boolean;
+  categoryId?: string;
   date: string;
 }
 

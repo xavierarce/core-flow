@@ -8,7 +8,51 @@ import { TransactionSource } from '@prisma/client';
 export class TransactionsService {
   constructor(private prisma: PrismaService) {}
 
+  // 👇 NEW HELPER: Shared Learning Logic 🧠
+  private async learnRule(description: string, categoryId: string) {
+    if (!description || !categoryId) return;
+
+    // Logic: Take the first word (e.g., "Starbucks")
+    const keyword = description.split(' ')[0].toLowerCase().trim();
+
+    // Only learn significant words (>3 chars)
+    if (keyword.length > 3) {
+      try {
+        await this.prisma.categoryRule.upsert({
+          where: { keyword },
+          update: { categoryId },
+          create: { keyword, categoryId },
+        });
+
+        // Fetch category name just for the console log (optional)
+        const cat = await this.prisma.category.findUnique({
+          where: { id: categoryId },
+        });
+        console.log(`🧠 Learned rule: "${keyword}" -> ${cat?.name}`);
+      } catch (e) {
+        console.log('⚠️ Could not learn rule:', e.message);
+      }
+    }
+  }
+
   async create(createTransactionDto: CreateTransactionDto) {
+    let finalCategoryId = createTransactionDto.categoryId;
+
+    // 1. SMART LOGIC ON CREATE 🧠
+    if (finalCategoryId) {
+      // Scenario A: User selected a category manually.
+      // Action: Learn this preference for the future!
+      await this.learnRule(createTransactionDto.description, finalCategoryId);
+    } else {
+      // Scenario B: User left category empty.
+      // Action: Default to "Other" so it's not "Uncategorized" (null)
+      const otherCategory = await this.prisma.category.findUnique({
+        where: { name: 'Other' },
+      });
+      finalCategoryId = otherCategory?.id;
+    }
+
+    // 2. Save Transaction
     const transaction = await this.prisma.transaction.create({
       data: {
         amount: createTransactionDto.amount,
@@ -17,7 +61,7 @@ export class TransactionsService {
         isRecurring: createTransactionDto.isRecurring,
         source: createTransactionDto.source,
         accountId: createTransactionDto.accountId,
-        categoryId: createTransactionDto.categoryId,
+        categoryId: finalCategoryId, // 👈 Use the resolved ID
       },
       include: {
         category: true,
@@ -25,7 +69,7 @@ export class TransactionsService {
       },
     });
 
-    // Update Balance
+    // 3. Update Balance
     const account = await this.prisma.account.findUnique({
       where: { id: createTransactionDto.accountId },
     });
@@ -63,7 +107,6 @@ export class TransactionsService {
     return this.prisma.transaction.findUnique({ where: { id } });
   }
 
-  // 👇 UPDATED: Now learns from your manual edits!
   async update(id: string, updateTransactionDto: UpdateTransactionDto) {
     const { accountId, categoryId, amount, ...data } = updateTransactionDto;
 
@@ -79,35 +122,15 @@ export class TransactionsService {
       include: { category: true },
     });
 
-    // 2. THE LEARNING LOGIC 🧠
-    // If you categorized it, try to save a rule for next time
+    // 2. THE LEARNING LOGIC (Reused!) 🧠
     if (categoryId && transaction.description) {
-      // Logic: Take the first word (e.g. "Starbucks")
-      const keyword = transaction.description
-        .split(' ')[0]
-        .toLowerCase()
-        .trim();
-
-      if (keyword.length > 3) {
-        await this.prisma.categoryRule
-          .upsert({
-            where: { keyword },
-            update: { categoryId },
-            create: { keyword, categoryId },
-          })
-          .catch((e) => console.log('⚠️ Could not learn rule:', e.message));
-
-        console.log(
-          `🧠 Learned rule: "${keyword}" -> ${transaction.category?.name}`,
-        );
-      }
+      await this.learnRule(transaction.description, categoryId);
     }
 
     return transaction;
   }
 
   async remove(id: string) {
-    // 1. Find the transaction first
     const transaction = await this.prisma.transaction.findUnique({
       where: { id },
     });
@@ -116,10 +139,7 @@ export class TransactionsService {
       throw new NotFoundException('Transaction not found');
     }
 
-    // 2. Revert the Balance
-    // If we delete an EXPENSE (-50), we must ADD 50 back.
-    // If we delete an INCOME (+50), we must SUBTRACT 50.
-    // Mathematically: Balance - TransactionAmount
+    // Revert Balance
     const account = await this.prisma.account.findUnique({
       where: { id: transaction.accountId },
     });
@@ -133,13 +153,11 @@ export class TransactionsService {
       });
     }
 
-    // 3. Delete the record
     return this.prisma.transaction.delete({
       where: { id },
     });
   }
 
-  // 👇 UPDATED: Fully Typed & Smart
   async import(accountId: string, transactions: any[]) {
     // 1. Fetch Rules & "Other" Category from DB
     const [rules, otherCategory] = await Promise.all([
@@ -147,12 +165,12 @@ export class TransactionsService {
       this.prisma.category.findUnique({ where: { name: 'Other' } }),
     ]);
 
-    // Create a Map for fast lookup
-    const ruleMap = new Map(rules.map((r) => [r.keyword, r.categoryId]));
+    const ruleMap = new Map<string, string>(
+      rules.map((r) => [r.keyword, r.categoryId]),
+    );
 
     // 2. Process Transactions
     const dataToInsert = transactions.map((tx) => {
-      // ✅ FIX 1: Explicit Type
       let matchedCategoryId: string | null = null;
       const descLower = tx.description.toLowerCase();
 
@@ -164,7 +182,7 @@ export class TransactionsService {
         }
       }
 
-      // Fallback to "Other" if no match found
+      // Fallback to "Other"
       if (!matchedCategoryId && otherCategory) {
         matchedCategoryId = otherCategory.id;
       }
@@ -174,19 +192,16 @@ export class TransactionsService {
         amount: tx.amount,
         date: new Date(tx.date),
         accountId: accountId,
-        // ✅ FIX 2: Use Enum, not string
         source: TransactionSource.BANK,
         categoryId: matchedCategoryId,
       };
     });
 
-    // 3. Calculate total for balance update
     const totalAmount = transactions.reduce(
       (sum, tx) => sum + Number(tx.amount),
       0,
     );
 
-    // 4. Save everything
     return this.prisma.$transaction([
       this.prisma.transaction.createMany({
         data: dataToInsert,
