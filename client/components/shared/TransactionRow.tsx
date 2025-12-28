@@ -41,20 +41,34 @@ export const TransactionRow = ({ transaction }: TransactionRowProps) => {
         ${isDeleting ? "opacity-50" : ""}
       `}
     >
-      {/* LEFT: Description */}
+      {/* LEFT: Description & Badges */}
       <div className="flex flex-col">
         <div className="flex items-center gap-2">
           <span className="font-medium text-slate-700">
             {transaction.description}
           </span>
+
+          {/* 👇 NEW: Category Badge */}
+          {transaction.category && (
+            <span
+              className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+              style={{
+                backgroundColor: `${transaction.category.color}20`, // 20% opacity background
+                color: transaction.category.color,
+              }}
+            >
+              {transaction.category.name}
+            </span>
+          )}
+
           {transaction.isRecurring && (
             <AppBadge className="bg-blue-50 text-blue-600 border-none">
-              SUB
+              R
             </AppBadge>
           )}
         </div>
         <span className="text-[10px] text-slate-400">
-          {dateObj.toLocaleDateString("fr-FR", {
+          {dateObj.toLocaleString("fr-FR", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",

@@ -1,4 +1,5 @@
 import { AccountsService } from "@/services/accounts.service";
+import { CategoriesService } from "@/services/categories.service";
 import {
   AppCard,
   TransactionList,
@@ -6,10 +7,14 @@ import {
   CashFlowChart,
   AddTransactionDialog,
 } from "@/components/shared";
+import { ExpenseChart } from "@/components/shared/ExpenseChart";
 import { MonthFilter } from "@/components/shared/MonthFilter";
-import { calculateMonthlyCashFlow } from "@/lib/finance.utils";
+import {
+  calculateMonthlyCashFlow,
+  calculateExpenseBreakdown,
+} from "@/lib/finance.utils";
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
-import { Account } from "@/types";
+import { Account, Category } from "@/types";
 
 interface HomeProps {
   searchParams: Promise<{
@@ -18,56 +23,46 @@ interface HomeProps {
 }
 
 const Home = async ({ searchParams }: HomeProps) => {
-  // 1. Resolve Params (Next.js 15 requirement)
   const params = await searchParams;
   const selectedDate = params.date ? new Date(params.date) : new Date();
+  const monthName = selectedDate.toLocaleString("en-US", { month: "long" });
 
-  // 2. Define Dates
-  // A. View Range (For the Transaction List: Just this month)
+  // Dates
   const viewStart = startOfMonth(selectedDate).toISOString();
   const viewEnd = endOfMonth(selectedDate).toISOString();
-
-  // B. Chart Range (For the Graphs: Last 6 Months)
-  // We go back 5 months from TODAY so the trend is always relevant
   const chartStart = subMonths(new Date(), 5).toISOString();
   const chartEnd = endOfMonth(new Date()).toISOString();
 
-  // 3. Fetch Data in Parallel
-  // We need two datasets: one for the list (small), one for the chart (big)
-  const [currentAccounts, trendAccounts] = await Promise.all([
-    AccountsService.getAll(viewStart, viewEnd), // Dataset 1
-    AccountsService.getAll(chartStart, chartEnd), // Dataset 2
+  // Fetch Data
+  const [currentAccounts, trendAccounts, categories] = await Promise.all([
+    AccountsService.getAll(viewStart, viewEnd),
+    AccountsService.getAll(chartStart, chartEnd),
+    CategoriesService.getAll(),
   ]);
 
-  // 4. Calculate Stats
+  // Calc Stats
   const totalWealth = AccountsService.calculateNetWorth(currentAccounts);
 
-  // Wealth Chart (Pie) uses Current Snapshot
   const wealthData = currentAccounts.map((acc: Account) => ({
     name: acc.name,
     value: Number(acc.balance),
   }));
 
-  // CashFlow Chart (Bar) uses Trend History (6 months)
   const cashFlowData = calculateMonthlyCashFlow(trendAccounts);
+  const expenseData = calculateExpenseBreakdown(currentAccounts);
 
   return (
     <main className="min-h-screen bg-slate-50/50 p-8">
-      {/* Header */}
-      <div className="max-w-6xl mx-auto mb-10 flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Dashboard
-          </h1>
-          <p className="text-slate-500 text-sm">Welcome back, Xavier</p>
-        </div>
-        <div className="flex flex-col items-end gap-4">
-          <div className="flex items-center gap-4">
-            <MonthFilter />
-            <AddTransactionDialog accounts={currentAccounts} />
+      {/* --- SECTION 1: GLOBAL OVERVIEW (Static / Trends) --- */}
+      <div className="max-w-6xl mx-auto mb-8">
+        <div className="flex justify-between items-end mb-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              Dashboard
+            </h1>
+            <p className="text-slate-500 text-sm">Welcome back, Xavier</p>
           </div>
-
-          <div className="text-right mt-2">
+          <div className="text-right">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
               Total Net Worth
             </p>
@@ -76,40 +71,64 @@ const Home = async ({ searchParams }: HomeProps) => {
             </p>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-6xl mx-auto grid gap-6">
-        {/* Charts Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1">
             <WealthChart data={wealthData} />
           </div>
           <div className="md:col-span-2">
-            {/* ✅ Uses the 6-month trend data */}
             <CashFlowChart data={cashFlowData} />
           </div>
         </div>
+      </div>
 
-        {/* Account List */}
-        <h2 className="text-xl font-bold text-slate-800 mt-4">
-          Activity for {selectedDate.toLocaleString("en-US", { month: "long" })}
-        </h2>
+      {/* Separator */}
+      <div className="max-w-6xl mx-auto border-t border-slate-200 my-10" />
+
+      {/* --- SECTION 2: MONTHLY FOCUS (Dynamic) --- */}
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">
+              {monthName} Overview
+            </h2>
+            <p className="text-slate-500 text-sm">
+              Expenses and activity for this month
+            </p>
+          </div>
+
+          {/* 👇 CONTROLS MOVED HERE - Closer to the data they affect */}
+          <div className="flex items-center gap-3">
+            <MonthFilter />
+            <AddTransactionDialog
+              accounts={currentAccounts}
+              categories={categories as Category[]}
+            />
+          </div>
+        </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* 1. Expense Chart (First item in the grid) */}
+          <div className="md:col-span-1">
+            <ExpenseChart data={expenseData} />
+          </div>
+
+          {/* 2. Transaction Lists (Next to it) */}
           {currentAccounts.map((account: Account) => (
-            <AppCard
-              key={account.id}
-              title={account.name}
-              subtitle={account.institution}
-              extraHeader={
-                <div className="text-2xl font-bold text-slate-700">
-                  {account.currency === "USD" ? "$" : "€"}
-                  {account.balance}
-                </div>
-              }
-            >
-              <TransactionList transactions={account.transactions} />
-            </AppCard>
+            <div key={account.id} className="md:col-span-1">
+              <AppCard
+                title={account.name}
+                subtitle={account.institution}
+                extraHeader={
+                  <div className="text-2xl font-bold text-slate-700">
+                    {account.currency === "USD" ? "$" : "€"}
+                    {account.balance}
+                  </div>
+                }
+              >
+                <TransactionList transactions={account.transactions} />
+              </AppCard>
+            </div>
           ))}
         </div>
       </div>

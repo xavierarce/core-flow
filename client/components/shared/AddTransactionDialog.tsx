@@ -3,15 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TransactionsService } from "@/services/transactions.service";
-import { Account } from "@/types";
+import { Account, Category } from "@/types"; // Import Category
 
 import { AppInput, AppSelect, AppButton, AppDialog, AppCheckbox } from "./";
 
 interface AddTransactionDialogProps {
   accounts: Account[];
+  categories: Category[]; // 👈 Added categories prop
 }
 
-export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
+export function AddTransactionDialog({
+  accounts,
+  categories,
+}: AddTransactionDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,6 +24,7 @@ export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
     description: "",
     amount: "",
     accountId: accounts[0]?.id || "",
+    categoryId: "", // 👈 Added categoryId to state
     date: new Date().toISOString().split("T")[0],
     isRecurring: false,
   });
@@ -33,9 +38,18 @@ export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
         ...formData,
         amount: parseFloat(formData.amount),
         date: new Date(formData.date).toISOString(),
+        // categoryId is already in formData, so it will be sent automatically
       });
+
       setOpen(false);
-      setFormData({ ...formData, description: "", amount: "" });
+      // Reset form (keeping account as default is usually better UX)
+      setFormData({
+        ...formData,
+        description: "",
+        amount: "",
+        categoryId: "",
+        isRecurring: false,
+      });
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -45,9 +59,15 @@ export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
     }
   };
 
+  // Prepare options for AppSelect
   const accountOptions = accounts.map((acc) => ({
     id: acc.id,
     label: acc.name,
+  }));
+
+  const categoryOptions = categories.map((cat) => ({
+    id: cat.id,
+    label: cat.name, // AppSelect usually handles text labels
   }));
 
   return (
@@ -58,16 +78,28 @@ export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
       trigger={<AppButton variantType="secondary">+ Add Transaction</AppButton>}
     >
       <form onSubmit={handleSubmit} className="grid gap-4">
-        <AppInput
-          label="Description"
-          placeholder="e.g. Grocery Store"
-          value={formData.description}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
-          required
-        />
+        {/* Row 1: Description & Category */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <AppInput
+            label="Description"
+            placeholder="e.g. Grocery Store"
+            value={formData.description}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
+            required
+          />
 
+          <AppSelect
+            label="Category"
+            value={formData.categoryId}
+            onChange={(val) => setFormData({ ...formData, categoryId: val })}
+            options={categoryOptions}
+            placeholder="Select Category"
+          />
+        </div>
+
+        {/* Row 2: Amount & Account */}
         <div className="grid grid-cols-2 gap-4">
           <AppInput
             label="Amount (€)"
@@ -89,6 +121,7 @@ export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
           />
         </div>
 
+        {/* Row 3: Date */}
         <AppInput
           label="Date"
           type="date"
@@ -97,7 +130,7 @@ export function AddTransactionDialog({ accounts }: AddTransactionDialogProps) {
           required
         />
 
-        {/* ✅ The New Clean Checkbox */}
+        {/* Checkbox */}
         <AppCheckbox
           id="recurring"
           label="This is a recurring subscription"

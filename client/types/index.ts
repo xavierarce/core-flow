@@ -1,11 +1,21 @@
+export interface Category {
+  id: string;
+  name: string;
+  type: string; // "EXPENSE" | "INCOME"
+  color: string;
+  icon?: string;
+}
+
 export interface Transaction {
   id: string;
-  amount: string; // Decimal comes as string from JSON APIs usually
+  amount: number;
   description: string;
-  category?: string;
   date: string;
   isRecurring?: boolean;
   source?: "MANUAL" | "BANK";
+
+  category?: Category;
+  categoryId?: string;
 }
 
 export interface Account {
@@ -13,7 +23,7 @@ export interface Account {
   name: string;
   institution: string;
   currency: string;
-  balance: string;
+  balance: number | string;
   type: "CASH" | "SAVINGS" | "INVESTMENT" | "TRADING";
   transactions: Transaction[];
 }
