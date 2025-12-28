@@ -126,7 +126,10 @@ const Home = async ({ searchParams }: HomeProps) => {
                   </div>
                 }
               >
-                <TransactionList transactions={account.transactions} />
+                <TransactionList
+                  transactions={account.transactions}
+                  categories={categories as Category[]} // 👈 Add this prop!
+                />
               </AppCard>
             </div>
           ))}

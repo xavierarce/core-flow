@@ -3,22 +3,39 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { Transaction } from "@/types";
+import { Transaction, Category } from "@/types";
 import { AppBadge } from "./AppBadge";
 import { TransactionsService } from "@/services/transactions.service";
 import { AppButton } from "./AppButton";
+import { AppSelect } from "./AppSelect";
 
 interface TransactionRowProps {
   transaction: Transaction;
+  categories: Category[];
 }
 
-export const TransactionRow = ({ transaction }: TransactionRowProps) => {
+export const TransactionRow = ({
+  transaction,
+  categories,
+}: TransactionRowProps) => {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const isNegative = Number(transaction.amount) < 0;
   const dateObj = new Date(transaction.date);
   const isDeletable = transaction.source === "MANUAL";
+
+  const currentCategory = transaction.category;
+  const badgeColor = currentCategory?.color || "#64748b";
+  const badgeBg = currentCategory ? `${currentCategory.color}20` : "#f1f5f9";
+
+  // Transform categories to AppSelect options format
+  const categoryOptions = categories.map((c) => ({
+    id: c.id,
+    label: c.name,
+    color: c.color,
+  }));
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this?")) return;
@@ -33,37 +50,64 @@ export const TransactionRow = ({ transaction }: TransactionRowProps) => {
     }
   };
 
+  const handleCategoryChange = async (newCategoryId: string) => {
+    setIsUpdating(true);
+    try {
+      await TransactionsService.update(transaction.id, {
+        categoryId: newCategoryId,
+      });
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to update category", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <div
       className={`
         group relative flex justify-between items-center text-sm rounded-lg transition-colors hover:bg-slate-50
-        pl-2 py-2 pr-10 /* 👈 Fixed right padding reserves space for the button on ALL rows */
+        pl-2 py-2 pr-10
         ${isDeleting ? "opacity-50" : ""}
       `}
     >
-      {/* LEFT: Description & Badges */}
+      {/* LEFT SIDE */}
       <div className="flex flex-col">
         <div className="flex items-center gap-2">
           <span className="font-medium text-slate-700">
             {transaction.description}
           </span>
 
-          {/* 👇 NEW: Category Badge */}
-          {transaction.category && (
-            <span
-              className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-              style={{
-                backgroundColor: `${transaction.category.color}20`, // 20% opacity background
-                color: transaction.category.color,
+          {/* 👇 INTERACTIVE BADGE */}
+          <div
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            // Force container to wrap tightly
+            className="h-6 flex items-center"
+          >
+            <AppSelect
+              variant="badge"
+              value={transaction.categoryId || ""}
+              onChange={handleCategoryChange}
+              options={categoryOptions}
+              disabled={isUpdating}
+              placeholder="Uncategorized"
+              className="gap-0"
+              triggerClassName="px-2 py-[2px] text-[10px] rounded-full font-medium transition-opacity hover:opacity-80 min-w-[fit-content]"
+              triggerStyle={{
+                backgroundColor: badgeBg,
+                color: badgeColor,
+                height: "fit-content",
               }}
-            >
-              {transaction.category.name}
-            </span>
-          )}
+            />
+          </div>
 
           {transaction.isRecurring && (
             <AppBadge className="bg-blue-50 text-blue-600 border-none">
-              R
+              SUB
             </AppBadge>
           )}
         </div>
@@ -76,7 +120,7 @@ export const TransactionRow = ({ transaction }: TransactionRowProps) => {
         </span>
       </div>
 
-      {/* RIGHT: Amount & Absolute Button */}
+      {/* RIGHT SIDE */}
       <div className="flex items-center">
         <span
           className={`font-semibold ${
@@ -87,10 +131,6 @@ export const TransactionRow = ({ transaction }: TransactionRowProps) => {
           {transaction.amount}
         </span>
 
-        {/* ABSOLUTE POSITIONING:
-            The button floats in the padding area (pr-10) we created above.
-            It does not affect the flex layout, so amounts never jump.
-        */}
         {isDeletable && (
           <div className="absolute right-2 top-1/2 -translate-y-1/2">
             <AppButton

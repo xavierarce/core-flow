@@ -23,6 +23,17 @@ export const TransactionsService = {
     return res.json();
   },
 
+  async update(id: string, data: Partial<Transaction>) {
+    const res = await fetch(`${API_URL}/transactions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) throw new Error("Failed to update transaction");
+    return res.json();
+  },
+
   async delete(id: string) {
     if (!API_URL) throw new Error("API URL missing");
 

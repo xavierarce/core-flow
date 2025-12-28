@@ -68,9 +68,20 @@ export class TransactionsService {
   findOne(id: string) {
     return this.prisma.transaction.findUnique({ where: { id } });
   }
+  async update(id: string, updateTransactionDto: UpdateTransactionDto) {
+    const { accountId, categoryId, amount, ...data } = updateTransactionDto;
 
-  update(id: string, updateTransactionDto: UpdateTransactionDto) {
-    return `This action updates #${id} transaction`;
+    return this.prisma.transaction.update({
+      where: { id },
+      data: {
+        ...data,
+        // Only update the connection if a new Category ID is sent
+        ...(categoryId && {
+          category: { connect: { id: categoryId } },
+        }),
+      },
+      include: { category: true },
+    });
   }
 
   async remove(id: string) {
