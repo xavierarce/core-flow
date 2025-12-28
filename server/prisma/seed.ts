@@ -216,6 +216,18 @@ async function main() {
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
+      amount: -850.0,
+      description: 'Rent Paris 11e',
+      categoryId: catHousing.id,
+      date: new Date('2025-12-01'),
+      source: TransactionSource.BANK,
+      isRecurring: true,
+    },
+  });
+
+  await prisma.transaction.create({
+    data: {
+      accountId: bank.id,
       amount: -15.5,
       description: 'McDonalds Late Night',
       categoryId: catFood.id,
