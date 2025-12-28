@@ -43,4 +43,10 @@ export class TransactionsController {
   remove(@Param('id') id: string) {
     return this.transactionsService.remove(id);
   }
+
+  // ... existing imports
+  @Post(':accountId/import') // POST /transactions/123-abc/import
+  import(@Param('accountId') accountId: string, @Body() body: any[]) {
+    return this.transactionsService.import(accountId, body);
+  }
 }

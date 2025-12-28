@@ -15,6 +15,7 @@ import {
 } from "@/lib/finance.utils";
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { Account, Category } from "@/types";
+import { CsvImporter } from "@/components/shared/CsvImporter";
 
 interface HomeProps {
   searchParams: Promise<{
@@ -100,6 +101,7 @@ const Home = async ({ searchParams }: HomeProps) => {
           {/* 👇 CONTROLS MOVED HERE - Closer to the data they affect */}
           <div className="flex items-center gap-3">
             <MonthFilter />
+            <CsvImporter accounts={currentAccounts} />
             <AddTransactionDialog
               accounts={currentAccounts}
               categories={categories as Category[]}

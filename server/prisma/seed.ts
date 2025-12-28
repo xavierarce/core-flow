@@ -12,11 +12,13 @@ async function main() {
 
   // 1. Clean DB
   try {
+    await prisma.categoryRule.deleteMany();
     await prisma.transaction.deleteMany();
     await prisma.account.deleteMany();
     await prisma.category.deleteMany();
+    console.log('🧹 Database cleared');
   } catch (e) {
-    console.log('⚠️ First run, nothing to clear.');
+    console.log('⚠️ Cleanup failed (or first run):', e);
   }
 
   // 2. Create Categories 🎨
@@ -68,9 +70,19 @@ async function main() {
   const catInvesting = await prisma.category.create({
     data: {
       name: 'Investing',
-      type: 'EXPENSE', // It's money leaving your cash balance
+      type: 'EXPENSE',
       color: '#0ea5e9', // Sky Blue
       icon: 'trending-up',
+    },
+  });
+
+  // 👇 ADDED: The Default "Other" Category
+  await prisma.category.create({
+    data: {
+      name: 'Other',
+      type: 'EXPENSE',
+      color: '#94a3b8', // Neutral Gray (Slate 400)
+      icon: 'more-horizontal', // generic icon
     },
   });
 
@@ -108,11 +120,11 @@ async function main() {
     data: {
       accountId: tradingAccount.id,
       amount: -2000.0,
-      description: 'LEVIS Stock', // Clarified description
-      categoryId: catInvesting.id, // <--- Linked to new category
+      description: 'LEVIS Stock',
+      categoryId: catInvesting.id,
       date: new Date('2025-12-20'),
-      source: TransactionSource.BANK, // Changed from BANK to MANUAL since it's a seed
-      isRecurring: false, // Stock purchases are rarely recurring in the same way subscriptions are
+      source: TransactionSource.MANUAL, // Fixed source
+      isRecurring: false,
     },
   });
 
@@ -121,7 +133,7 @@ async function main() {
       accountId: bank.id,
       amount: 3200.0,
       description: 'Tech Corp Salary',
-      categoryId: catSalary.id, // 👈 Link to Category ID
+      categoryId: catSalary.id,
       date: new Date('2025-10-28'),
       source: TransactionSource.BANK,
       isRecurring: true,
@@ -145,7 +157,7 @@ async function main() {
       accountId: bank.id,
       amount: -100.54,
       description: 'Justine Anniversaire',
-      categoryId: catFood.id, // Using Food for birthday dinner
+      categoryId: catFood.id,
       date: new Date('2025-10-12'),
       source: TransactionSource.BANK,
     },
