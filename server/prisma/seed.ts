@@ -14,29 +14,77 @@ async function main() {
   try {
     await prisma.transaction.deleteMany();
     await prisma.account.deleteMany();
-    console.log('🧹 Database cleared');
+    await prisma.category.deleteMany();
   } catch (e) {
     console.log('⚠️ First run, nothing to clear.');
   }
 
-  // 2. Create Accounts
-  // A. Investment Account (Growing wealth)
+  // 2. Create Categories 🎨
+  console.log('🎨 Creating Categories...');
+
+  // Income
+  const catSalary = await prisma.category.create({
+    data: { name: 'Salary', type: 'INCOME', color: '#10b981', icon: 'wallet' },
+  }); // Emerald
+  const catSideHustle = await prisma.category.create({
+    data: {
+      name: 'Side Hustle',
+      type: 'INCOME',
+      color: '#34d399',
+      icon: 'briefcase',
+    },
+  });
+
+  // Expenses
+  const catHousing = await prisma.category.create({
+    data: { name: 'Housing', type: 'EXPENSE', color: '#f43f5e', icon: 'home' },
+  }); // Rose
+  const catFood = await prisma.category.create({
+    data: { name: 'Food', type: 'EXPENSE', color: '#f59e0b', icon: 'utensils' },
+  }); // Amber
+  const catTransport = await prisma.category.create({
+    data: { name: 'Transport', type: 'EXPENSE', color: '#3b82f6', icon: 'car' },
+  }); // Blue
+  const catShopping = await prisma.category.create({
+    data: {
+      name: 'Shopping',
+      type: 'EXPENSE',
+      color: '#ec4899',
+      icon: 'shopping-bag',
+    },
+  }); // Pink
+  const catEntertainment = await prisma.category.create({
+    data: {
+      name: 'Entertainment',
+      type: 'EXPENSE',
+      color: '#8b5cf6',
+      icon: 'tv',
+    },
+  }); // Violet
+  const catSoftware = await prisma.category.create({
+    data: { name: 'Software', type: 'EXPENSE', color: '#64748b', icon: 'cpu' },
+  }); // Slate
+
+  console.log('✅ Categories created.');
+
+  // 3. Create Accounts
+  // A. Investment Account
   const tradingAccount = await prisma.account.create({
     data: {
       name: 'Etoro',
       institution: 'EToro',
-      balance: 2500.0, // Let's bump this up a bit ;)
+      balance: 2500.0,
       currency: 'USD',
       type: AccountType.INVESTMENT,
     },
   });
 
-  // B. Main Checking Account (Daily Driver)
+  // B. Main Checking Account
   const bank = await prisma.account.create({
     data: {
       name: 'Compte Courant',
       institution: 'Société Générale',
-      balance: 4250.0, // Healthy buffer
+      balance: 4250.0,
       currency: 'EUR',
       type: AccountType.CASH,
     },
@@ -44,31 +92,27 @@ async function main() {
 
   console.log('✅ Accounts created.');
 
-  // 3. INJECT TRANSACTIONS
+  // 4. INJECT TRANSACTIONS
 
-  // --- October (Previous Month) ---
-  // Helps visualize trends in the Bar Chart
-
-  // Income 💰
+  // --- October ---
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
       amount: 3200.0,
       description: 'Tech Corp Salary',
-      category: 'Income',
+      categoryId: catSalary.id, // 👈 Link to Category ID
       date: new Date('2025-10-28'),
       source: TransactionSource.BANK,
       isRecurring: true,
     },
   });
 
-  // Expenses 💸
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
       amount: -850.0,
       description: 'Rent Paris 11e',
-      category: 'Housing',
+      categoryId: catHousing.id,
       date: new Date('2025-10-05'),
       source: TransactionSource.BANK,
       isRecurring: true,
@@ -80,34 +124,31 @@ async function main() {
       accountId: bank.id,
       amount: -100.54,
       description: 'Justine Anniversaire',
-      category: 'Food',
+      categoryId: catFood.id, // Using Food for birthday dinner
       date: new Date('2025-10-12'),
       source: TransactionSource.BANK,
     },
   });
-  // --- NOVEMBER (Previous Month) ---
-  // Helps visualize trends in the Bar Chart
 
-  // Income 💰
+  // --- NOVEMBER ---
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
       amount: 3200.0,
       description: 'Tech Corp Salary',
-      category: 'Income',
+      categoryId: catSalary.id,
       date: new Date('2025-11-28'),
       source: TransactionSource.BANK,
       isRecurring: true,
     },
   });
 
-  // Expenses 💸
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
       amount: -850.0,
       description: 'Rent Paris 11e',
-      category: 'Housing',
+      categoryId: catHousing.id,
       date: new Date('2025-11-05'),
       source: TransactionSource.BANK,
       isRecurring: true,
@@ -119,21 +160,20 @@ async function main() {
       accountId: bank.id,
       amount: -65.4,
       description: 'Carrefour Market',
-      category: 'Food',
+      categoryId: catFood.id,
       date: new Date('2025-11-12'),
       source: TransactionSource.BANK,
     },
   });
 
-  // --- DECEMBER (Current Month) ---
-
-  // Income 💰
+  // --- DECEMBER ---
+  // Income
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
       amount: 3200.0,
       description: 'Tech Corp Salary',
-      category: 'Income',
+      categoryId: catSalary.id,
       date: new Date('2025-12-28'),
       source: TransactionSource.BANK,
       isRecurring: true,
@@ -145,19 +185,19 @@ async function main() {
       accountId: bank.id,
       amount: 450.0,
       description: 'Freelance Frontend Mission',
-      category: 'Side Hustle',
+      categoryId: catSideHustle.id,
       date: new Date('2025-12-15'),
       source: TransactionSource.BANK,
     },
   });
 
-  // Expenses 💸
+  // Expenses
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
       amount: -15.5,
       description: 'McDonalds Late Night',
-      category: 'Food',
+      categoryId: catFood.id,
       date: new Date('2025-12-20'),
       source: TransactionSource.BANK,
     },
@@ -168,7 +208,7 @@ async function main() {
       accountId: bank.id,
       amount: -45.0,
       description: 'Uber Ride',
-      category: 'Transport',
+      categoryId: catTransport.id,
       date: new Date('2025-12-21'),
       source: TransactionSource.BANK,
     },
@@ -179,19 +219,19 @@ async function main() {
       accountId: bank.id,
       amount: -120.0,
       description: 'Christmas Gifts',
-      category: 'Shopping',
+      categoryId: catShopping.id,
       date: new Date('2025-12-23'),
       source: TransactionSource.BANK,
     },
   });
 
-  // Subscriptions 🔄
+  // Subscriptions
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
       amount: -13.99,
       description: 'Netflix Premium',
-      category: 'Entertainment',
+      categoryId: catEntertainment.id,
       isRecurring: true,
       date: new Date('2025-12-01'),
       source: TransactionSource.BANK,
@@ -203,14 +243,14 @@ async function main() {
       accountId: bank.id,
       amount: -22.0,
       description: 'ChatGPT Plus',
-      category: 'Software',
+      categoryId: catSoftware.id,
       isRecurring: true,
       date: new Date('2025-12-02'),
       source: TransactionSource.BANK,
     },
   });
 
-  console.log('✅ Transactions injected (Nov & Dec).');
+  console.log('✅ Transactions injected (Oct, Nov & Dec).');
   console.log('🚀 Seeding finished.');
 }
 

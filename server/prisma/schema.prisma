@@ -32,13 +32,27 @@ enum TransactionSource {
   BANK   // Synced from API (Read-Only)
 }
 
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique             // "Food", "Transport"
+  type      String   @default("EXPENSE") // "EXPENSE" or "INCOME"
+  color     String   @default("#64748b") // Hex Code for the chart
+  icon      String?                      // Optional: "shopping-cart", etc.
+  
+  transactions Transaction[]
+  createdAt    DateTime @default(now())
+}
+
 model Transaction {
   id          String   @id @default(uuid())
   accountId   String
   account     Account  @relation(fields: [accountId], references: [id])
   amount      Decimal  @db.Decimal(15, 2)
   description String
-  category    String?
+
+  categoryId  String?  
+  category    Category? @relation(fields: [categoryId], references: [id])
+  
   date        DateTime
   isRecurring Boolean  @default(false)
   source      TransactionSource @default(MANUAL)

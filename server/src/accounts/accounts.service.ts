@@ -28,6 +28,7 @@ export class AccountsService {
             },
           },
           orderBy: { date: 'desc' },
+          include: { category: true },
         },
       },
     });

@@ -5,24 +5,27 @@ import {
   IsString,
   IsUUID,
   IsOptional,
+  IsEnum,
 } from 'class-validator';
+import { TransactionSource } from '@prisma/client';
 
 export class CreateTransactionDto {
   @IsNumber()
   @IsNotEmpty()
-  amount: number; // e.g. -15.50
+  amount: number;
 
   @IsString()
   @IsNotEmpty()
-  description: string; // e.g. "Cash Withdrawal"
-
-  @IsString()
-  @IsOptional()
-  category?: string; // e.g. "Food"
+  description: string;
 
   @IsUUID()
   @IsNotEmpty()
-  accountId: string; // The Account ID (e.g. the Bank ID)
+  accountId: string;
+
+  // 👇 Ensure this is here
+  @IsUUID()
+  @IsOptional()
+  categoryId?: string;
 
   @IsBoolean()
   @IsOptional()
@@ -30,5 +33,10 @@ export class CreateTransactionDto {
 
   @IsString()
   @IsNotEmpty()
-  date: string; // ISO Date String
+  date: string;
+
+  // 👇 ADD THIS FIELD
+  @IsOptional()
+  @IsEnum(TransactionSource)
+  source?: TransactionSource;
 }
