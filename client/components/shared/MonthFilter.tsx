@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth } from "date-fns";
+import { AppButton } from "./AppButton";
 
 export const MonthFilter = () => {
   const router = useRouter();
@@ -27,20 +28,27 @@ export const MonthFilter = () => {
 
   return (
     <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-md border shadow-sm">
-      <button
+      <AppButton
+        variant="ghost"
+        size="icon-sm"
         onClick={() => changeMonth(-1)}
-        className="hover:text-emerald-600"
+        className="h-6 w-6 hover:text-emerald-600"
       >
         <ChevronLeft size={16} />
-      </button>
+      </AppButton>
 
       <span className="font-semibold text-sm w-32 text-center select-none">
         {format(currentDate, "MMMM yyyy")}
       </span>
 
-      <button onClick={() => changeMonth(1)} className="hover:text-emerald-600">
+      <AppButton
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => changeMonth(1)}
+        className="h-6 w-6 hover:text-emerald-600"
+      >
         <ChevronRight size={16} />
-      </button>
+      </AppButton>
     </div>
   );
 };

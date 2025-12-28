@@ -65,6 +65,15 @@ async function main() {
     data: { name: 'Software', type: 'EXPENSE', color: '#64748b', icon: 'cpu' },
   }); // Slate
 
+  const catInvesting = await prisma.category.create({
+    data: {
+      name: 'Investing',
+      type: 'EXPENSE', // It's money leaving your cash balance
+      color: '#0ea5e9', // Sky Blue
+      icon: 'trending-up',
+    },
+  });
+
   console.log('✅ Categories created.');
 
   // 3. Create Accounts
@@ -95,6 +104,18 @@ async function main() {
   // 4. INJECT TRANSACTIONS
 
   // --- October ---
+  await prisma.transaction.create({
+    data: {
+      accountId: tradingAccount.id,
+      amount: -2000.0,
+      description: 'LEVIS Stock', // Clarified description
+      categoryId: catInvesting.id, // <--- Linked to new category
+      date: new Date('2025-12-20'),
+      source: TransactionSource.BANK, // Changed from BANK to MANUAL since it's a seed
+      isRecurring: false, // Stock purchases are rarely recurring in the same way subscriptions are
+    },
+  });
+
   await prisma.transaction.create({
     data: {
       accountId: bank.id,
