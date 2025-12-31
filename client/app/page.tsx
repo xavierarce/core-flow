@@ -53,18 +53,20 @@ const Home = async ({ searchParams }: HomeProps) => {
   const expenseData = calculateExpenseBreakdown(currentAccounts);
 
   return (
-    <main className="min-h-screen bg-slate-50/50 p-8">
-      {/* --- SECTION 1: GLOBAL OVERVIEW (Static / Trends) --- */}
-      <div className="max-w-6xl mx-auto mb-8">
-        <div className="flex justify-between items-end mb-6">
+    <main className="min-h-screen bg-slate-50/50">
+      <div className="p-8 max-w-7xl mx-auto space-y-12">
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
               Dashboard
             </h1>
-            <p className="text-slate-500 text-sm">Welcome back, Xavier</p>
+            <p className="text-slate-500 mt-2 font-medium">
+              Financial overview for Xavier
+            </p>
           </div>
-          <div className="text-right">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+
+          <div className="text-right p-2 bg-white rounded-2xl border border-slate-100 shadow-sm">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
               Total Net Worth
             </p>
             <p className="text-4xl font-black text-emerald-600">
@@ -73,6 +75,7 @@ const Home = async ({ searchParams }: HomeProps) => {
           </div>
         </div>
 
+        {/* --- SECTION 1: GLOBAL TRENDS --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1">
             <WealthChart data={wealthData} />
@@ -81,60 +84,57 @@ const Home = async ({ searchParams }: HomeProps) => {
             <CashFlowChart data={cashFlowData} />
           </div>
         </div>
-      </div>
 
-      {/* Separator */}
-      <div className="max-w-6xl mx-auto border-t border-slate-200 my-10" />
-
-      {/* --- SECTION 2: MONTHLY FOCUS (Dynamic) --- */}
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">
-              {monthName} Overview
-            </h2>
-            <p className="text-slate-500 text-sm">
-              Expenses and activity for this month
-            </p>
-          </div>
-
-          {/* 👇 CONTROLS MOVED HERE - Closer to the data they affect */}
-          <div className="flex items-center gap-3">
-            <MonthFilter />
-            <CsvImporter accounts={currentAccounts} />
-            <AddTransactionDialog
-              accounts={currentAccounts}
-              categories={categories as Category[]}
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* 1. Expense Chart (First item in the grid) */}
-          <div className="md:col-span-1">
-            <ExpenseChart data={expenseData} />
-          </div>
-
-          {/* 2. Transaction Lists (Next to it) */}
-          {currentAccounts.map((account: Account) => (
-            <div key={account.id} className="md:col-span-1">
-              <AppCard
-                title={account.name}
-                subtitle={account.institution}
-                extraHeader={
-                  <div className="text-2xl font-bold text-slate-700">
-                    {account.currency === "USD" ? "$" : "€"}
-                    {account.balance}
-                  </div>
-                }
-              >
-                <TransactionList
-                  transactions={account.transactions}
-                  categories={categories as Category[]} // 👈 Add this prop!
-                />
-              </AppCard>
+        {/* --- SECTION 2: MONTHLY FOCUS --- */}
+        <div className="pt-8 border-t border-slate-200">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                {monthName} <span className="text-slate-600">Activity</span>
+              </h2>
+              <p className="text-slate-500 text-sm mt-1">
+                Deep dive into expenses and income
+              </p>
             </div>
-          ))}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <MonthFilter />
+              <div className="w-px h-6 bg-slate-200 mx-1" /> {/* Divider */}
+              <CsvImporter accounts={currentAccounts} />
+              <AddTransactionDialog
+                accounts={currentAccounts}
+                categories={categories as Category[]}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* 1. Expense Chart */}
+            <div className="md:col-span-1 h-full">
+              <ExpenseChart data={expenseData} />
+            </div>
+
+            {/* 2. Account Transaction Lists */}
+            {currentAccounts.map((account: Account) => (
+              <div key={account.id} className="md:col-span-1">
+                <AppCard
+                  title={account.name}
+                  subtitle={account.institution}
+                  extraHeader={
+                    <div className="text-xl font-bold text-slate-700 font-mono tracking-tight">
+                      {account.currency === "USD" ? "$" : "€"}
+                      {Number(account.balance).toLocaleString()}
+                    </div>
+                  }
+                >
+                  <TransactionList
+                    transactions={account.transactions}
+                    categories={categories as Category[]}
+                  />
+                </AppCard>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </main>

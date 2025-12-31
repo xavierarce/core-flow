@@ -53,7 +53,12 @@ export const ExpenseChart = ({ data }: ExpenseChartProps) => {
                 boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
               }}
             />
-            <Legend verticalAlign="bottom" height={36} iconType="circle" />
+            <Legend
+              verticalAlign="bottom"
+              align="center"
+              iconType="circle"
+              formatter={(value) => <span className="text-sm ">{value}</span>}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>

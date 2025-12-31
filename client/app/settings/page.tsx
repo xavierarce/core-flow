@@ -6,8 +6,6 @@ import { CategoriesService } from "@/services/categories.service";
 import { RulesService } from "@/services/rules.service";
 import { Category } from "@/types";
 import { Trash2, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 
 export default function SettingsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -45,9 +43,6 @@ export default function SettingsPage() {
           <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
           <p className="text-slate-500 text-sm">Manage your automation rules</p>
         </div>
-        <Link href="/">
-          <Button variant="outline">Back to Dashboard</Button>
-        </Link>
       </div>
 
       <div className="max-w-4xl mx-auto grid gap-8 md:grid-cols-2">
