@@ -16,6 +16,7 @@ import {
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { Account, Category } from "@/types";
 import { CsvImporter } from "@/components/shared/CsvImporter";
+import { ManageAccountDialog } from "@/components/shared/ManageAccountDialog";
 
 interface HomeProps {
   searchParams: Promise<{
@@ -51,6 +52,10 @@ const Home = async ({ searchParams }: HomeProps) => {
 
   const cashFlowData = calculateMonthlyCashFlow(trendAccounts);
   const expenseData = calculateExpenseBreakdown(currentAccounts);
+  // Filter accounts for the dropdowns
+  const manualAccounts = currentAccounts.filter(
+    (acc: Account) => !acc.isAutomated
+  );
 
   return (
     <main className="min-h-screen bg-slate-50/50">
@@ -99,12 +104,17 @@ const Home = async ({ searchParams }: HomeProps) => {
 
             <div className="flex flex-wrap items-center gap-2">
               <MonthFilter />
-              <div className="w-px h-6 bg-slate-200 mx-1" /> {/* Divider */}
-              <CsvImporter accounts={currentAccounts} />
+              <div className="w-px h-6 bg-slate-200 mx-1" />
+
+              {/* Only pass MANUAL accounts to these tools */}
+              <CsvImporter accounts={manualAccounts} />
               <AddTransactionDialog
-                accounts={currentAccounts}
+                accounts={manualAccounts}
                 categories={categories as Category[]}
               />
+
+              {/* New Button to Create Account */}
+              <ManageAccountDialog />
             </div>
           </div>
 
@@ -120,6 +130,8 @@ const Home = async ({ searchParams }: HomeProps) => {
                 <AppCard
                   title={account.name}
                   subtitle={account.institution}
+                  // Add the Edit button to the card header
+                  action={<ManageAccountDialog account={account} />}
                   extraHeader={
                     <div className="text-xl font-bold text-slate-700 font-mono tracking-tight">
                       {account.currency === "USD" ? "$" : "€"}

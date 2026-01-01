@@ -100,16 +100,16 @@ async function main() {
   //   },
   // });
 
-  // // B. Main Checking Account
-  // const bank = await prisma.account.create({
-  //   data: {
-  //     name: 'Compte Courant',
-  //     institution: 'Société Générale',
-  //     balance: 4250.0,
-  //     currency: 'EUR',
-  //     type: AccountType.CASH,
-  //   },
-  // });
+  // B. Main Checking Account
+  const bank = await prisma.account.create({
+    data: {
+      name: 'Compte Courant',
+      institution: 'Société Générale',
+      balance: 4250.0,
+      currency: 'EUR',
+      type: AccountType.CASH,
+    },
+  });
 
   // console.log('✅ Accounts created.');
 

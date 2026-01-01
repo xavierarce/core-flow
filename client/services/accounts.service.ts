@@ -22,6 +22,36 @@ export const AccountsService = {
   },
 
   /**
+   * Create a new account
+   * Mirrors NestJS POST /accounts
+   */
+  async create(data: any) {
+    const res = await fetch(`${API_URL}/accounts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) throw new Error("Failed to create account");
+    return res.json();
+  },
+
+  /**
+   * Update an existing account
+   * Mirrors NestJS PATCH /accounts/:id
+   */
+  async update(id: string, data: any) {
+    const res = await fetch(`${API_URL}/accounts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) throw new Error("Failed to update account");
+    return res.json();
+  },
+
+  /**
    * Calculate total net worth helper
    * Business logic stays out of the UI!
    */

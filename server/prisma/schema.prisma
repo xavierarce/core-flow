@@ -8,10 +8,12 @@ datasource db {
 
 
 enum AccountType {
-  CASH         // Checking accounts
-  SAVINGS      // LEP, Livret A
-  INVESTMENT   // PEA, ETFs
-  TRADING      // High-risk/Leverage accounts
+  CASH
+  SAVINGS
+  INVESTMENT
+  TRADING
+  CRYPTO        // 👈 Add this
+  REAL_ESTATE   // 👈 Add this
 }
 
 model Account {

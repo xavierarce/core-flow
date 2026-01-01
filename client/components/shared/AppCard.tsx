@@ -1,4 +1,3 @@
-// client/components/shared/AppCard.tsx
 import {
   Card,
   CardHeader,
@@ -6,21 +5,23 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils"; // Standard Shadcn utility
+import { cn } from "@/lib/utils";
 
 interface AppCardProps {
   title: string;
   subtitle?: string;
   extraHeader?: React.ReactNode;
+  action?: React.ReactNode; // 👈 Added Action Prop
   children: React.ReactNode;
-  className?: string; // For the container
-  headerClassName?: string; // Optional: if you want to tweak header specifically
+  className?: string;
+  headerClassName?: string;
 }
 
 export const AppCard = ({
   title,
   subtitle,
   extraHeader,
+  action,
   children,
   className,
   headerClassName,
@@ -28,10 +29,11 @@ export const AppCard = ({
   <Card className={cn("overflow-hidden shadow-sm", className)}>
     <CardHeader
       className={cn(
-        "flex flex-row items-start justify-between space-y-0",
+        "flex flex-row items-start justify-between space-y-0 pb-2",
         headerClassName
       )}
     >
+      {/* Left Side: Title & Tag */}
       <div className="space-y-1">
         <CardTitle className="text-xl font-bold text-slate-800">
           {title}
@@ -42,7 +44,12 @@ export const AppCard = ({
           </CardDescription>
         )}
       </div>
-      {extraHeader}
+
+      {/* Right Side: Balance (extraHeader) + Edit Button (action) */}
+      <div className="flex items-center gap-3">
+        {extraHeader}
+        {action && <div>{action}</div>}
+      </div>
     </CardHeader>
     <CardContent>{children}</CardContent>
   </Card>

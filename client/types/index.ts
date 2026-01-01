@@ -21,6 +21,7 @@ export interface Transaction {
 export interface Account {
   id: string;
   name: string;
+  isAutomated?: boolean;
   institution: string;
   currency: string;
   balance: number | string;

@@ -8,9 +8,35 @@ import { GetAccountsQueryDto } from 'src/transactions/dto/get-transaction.dto';
 export class AccountsService {
   constructor(private prisma: PrismaService) {}
 
-  create(createAccountDto: CreateAccountDto) {
-    return this.prisma.account.create({
-      data: createAccountDto,
+  // 1. Create Account (With optional initial balance transaction)
+  async create(dto: CreateAccountDto) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Create Account
+      const account = await tx.account.create({
+        data: {
+          name: dto.name,
+          institution: dto.institution,
+          type: dto.type,
+          // 👇 MAPPING: Input 'initialBalance' -> Database 'balance'
+          balance: dto.initialBalance || 0,
+          isAutomated: false,
+        },
+      });
+
+      // 2. Create Transaction History
+      if (dto.initialBalance && dto.initialBalance !== 0) {
+        await tx.transaction.create({
+          data: {
+            accountId: account.id,
+            amount: dto.initialBalance,
+            description: 'Initial Balance',
+            date: new Date(),
+            source: 'MANUAL',
+          },
+        });
+      }
+
+      return account;
     });
   }
 
@@ -40,10 +66,11 @@ export class AccountsService {
     });
   }
 
-  update(id: string, updateAccountDto: UpdateAccountDto) {
+  // 2. Update Account
+  async update(id: string, dto: UpdateAccountDto) {
     return this.prisma.account.update({
       where: { id },
-      data: updateAccountDto,
+      data: dto,
     });
   }
 
