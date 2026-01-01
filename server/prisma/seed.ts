@@ -90,210 +90,210 @@ async function main() {
 
   // 3. Create Accounts
   // A. Investment Account
-  const tradingAccount = await prisma.account.create({
-    data: {
-      name: 'Etoro',
-      institution: 'EToro',
-      balance: 2500.0,
-      currency: 'USD',
-      type: AccountType.INVESTMENT,
-    },
-  });
+  // const tradingAccount = await prisma.account.create({
+  //   data: {
+  //     name: 'Etoro',
+  //     institution: 'EToro',
+  //     balance: 2500.0,
+  //     currency: 'USD',
+  //     type: AccountType.INVESTMENT,
+  //   },
+  // });
 
-  // B. Main Checking Account
-  const bank = await prisma.account.create({
-    data: {
-      name: 'Compte Courant',
-      institution: 'Société Générale',
-      balance: 4250.0,
-      currency: 'EUR',
-      type: AccountType.CASH,
-    },
-  });
+  // // B. Main Checking Account
+  // const bank = await prisma.account.create({
+  //   data: {
+  //     name: 'Compte Courant',
+  //     institution: 'Société Générale',
+  //     balance: 4250.0,
+  //     currency: 'EUR',
+  //     type: AccountType.CASH,
+  //   },
+  // });
 
-  console.log('✅ Accounts created.');
+  // console.log('✅ Accounts created.');
 
-  // 4. INJECT TRANSACTIONS
+  // // 4. INJECT TRANSACTIONS
 
-  // --- October ---
-  await prisma.transaction.create({
-    data: {
-      accountId: tradingAccount.id,
-      amount: -2000.0,
-      description: 'LEVIS Stock',
-      categoryId: catInvesting.id,
-      date: new Date('2025-12-20'),
-      source: TransactionSource.MANUAL, // Fixed source
-      isRecurring: false,
-    },
-  });
+  // // --- October ---
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: tradingAccount.id,
+  //     amount: -2000.0,
+  //     description: 'LEVIS Stock',
+  //     categoryId: catInvesting.id,
+  //     date: new Date('2025-12-20'),
+  //     source: TransactionSource.MANUAL, // Fixed source
+  //     isRecurring: false,
+  //   },
+  // });
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: 3200.0,
-      description: 'Tech Corp Salary',
-      categoryId: catSalary.id,
-      date: new Date('2025-10-28'),
-      source: TransactionSource.BANK,
-      isRecurring: true,
-    },
-  });
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: 3200.0,
+  //     description: 'Tech Corp Salary',
+  //     categoryId: catSalary.id,
+  //     date: new Date('2025-10-28'),
+  //     source: TransactionSource.BANK,
+  //     isRecurring: true,
+  //   },
+  // });
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: -850.0,
-      description: 'Rent Paris 11e',
-      categoryId: catHousing.id,
-      date: new Date('2025-10-05'),
-      source: TransactionSource.BANK,
-      isRecurring: true,
-    },
-  });
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: -850.0,
+  //     description: 'Rent Paris 11e',
+  //     categoryId: catHousing.id,
+  //     date: new Date('2025-10-05'),
+  //     source: TransactionSource.BANK,
+  //     isRecurring: true,
+  //   },
+  // });
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: -100.54,
-      description: 'Justine Anniversaire',
-      categoryId: catFood.id,
-      date: new Date('2025-10-12'),
-      source: TransactionSource.BANK,
-    },
-  });
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: -100.54,
+  //     description: 'Justine Anniversaire',
+  //     categoryId: catFood.id,
+  //     date: new Date('2025-10-12'),
+  //     source: TransactionSource.BANK,
+  //   },
+  // });
 
-  // --- NOVEMBER ---
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: 3200.0,
-      description: 'Tech Corp Salary',
-      categoryId: catSalary.id,
-      date: new Date('2025-11-28'),
-      source: TransactionSource.BANK,
-      isRecurring: true,
-    },
-  });
+  // // --- NOVEMBER ---
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: 3200.0,
+  //     description: 'Tech Corp Salary',
+  //     categoryId: catSalary.id,
+  //     date: new Date('2025-11-28'),
+  //     source: TransactionSource.BANK,
+  //     isRecurring: true,
+  //   },
+  // });
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: -850.0,
-      description: 'Rent Paris 11e',
-      categoryId: catHousing.id,
-      date: new Date('2025-11-05'),
-      source: TransactionSource.BANK,
-      isRecurring: true,
-    },
-  });
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: -850.0,
+  //     description: 'Rent Paris 11e',
+  //     categoryId: catHousing.id,
+  //     date: new Date('2025-11-05'),
+  //     source: TransactionSource.BANK,
+  //     isRecurring: true,
+  //   },
+  // });
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: -65.4,
-      description: 'Carrefour Market',
-      categoryId: catFood.id,
-      date: new Date('2025-11-12'),
-      source: TransactionSource.BANK,
-    },
-  });
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: -65.4,
+  //     description: 'Carrefour Market',
+  //     categoryId: catFood.id,
+  //     date: new Date('2025-11-12'),
+  //     source: TransactionSource.BANK,
+  //   },
+  // });
 
-  // --- DECEMBER ---
-  // Income
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: 3200.0,
-      description: 'Tech Corp Salary',
-      categoryId: catSalary.id,
-      date: new Date('2025-12-28'),
-      source: TransactionSource.BANK,
-      isRecurring: true,
-    },
-  });
+  // // --- DECEMBER ---
+  // // Income
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: 3200.0,
+  //     description: 'Tech Corp Salary',
+  //     categoryId: catSalary.id,
+  //     date: new Date('2025-12-28'),
+  //     source: TransactionSource.BANK,
+  //     isRecurring: true,
+  //   },
+  // });
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: 450.0,
-      description: 'Freelance Frontend Mission',
-      categoryId: catSideHustle.id,
-      date: new Date('2025-12-15'),
-      source: TransactionSource.BANK,
-    },
-  });
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: 450.0,
+  //     description: 'Freelance Frontend Mission',
+  //     categoryId: catSideHustle.id,
+  //     date: new Date('2025-12-15'),
+  //     source: TransactionSource.BANK,
+  //   },
+  // });
 
-  // Expenses
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: -850.0,
-      description: 'Rent Paris 11e',
-      categoryId: catHousing.id,
-      date: new Date('2025-12-01'),
-      source: TransactionSource.BANK,
-      isRecurring: true,
-    },
-  });
+  // // Expenses
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: -850.0,
+  //     description: 'Rent Paris 11e',
+  //     categoryId: catHousing.id,
+  //     date: new Date('2025-12-01'),
+  //     source: TransactionSource.BANK,
+  //     isRecurring: true,
+  //   },
+  // });
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: -15.5,
-      description: 'McDonalds Late Night',
-      categoryId: catFood.id,
-      date: new Date('2025-12-20'),
-      source: TransactionSource.BANK,
-    },
-  });
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: -15.5,
+  //     description: 'McDonalds Late Night',
+  //     categoryId: catFood.id,
+  //     date: new Date('2025-12-20'),
+  //     source: TransactionSource.BANK,
+  //   },
+  // });
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: -45.0,
-      description: 'Uber Ride',
-      categoryId: catTransport.id,
-      date: new Date('2025-12-21'),
-      source: TransactionSource.BANK,
-    },
-  });
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: -45.0,
+  //     description: 'Uber Ride',
+  //     categoryId: catTransport.id,
+  //     date: new Date('2025-12-21'),
+  //     source: TransactionSource.BANK,
+  //   },
+  // });
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: -120.0,
-      description: 'Christmas Gifts',
-      categoryId: catShopping.id,
-      date: new Date('2025-12-23'),
-      source: TransactionSource.BANK,
-    },
-  });
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: -120.0,
+  //     description: 'Christmas Gifts',
+  //     categoryId: catShopping.id,
+  //     date: new Date('2025-12-23'),
+  //     source: TransactionSource.BANK,
+  //   },
+  // });
 
-  // Subscriptions
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: -13.99,
-      description: 'Netflix Premium',
-      categoryId: catEntertainment.id,
-      isRecurring: true,
-      date: new Date('2025-12-01'),
-      source: TransactionSource.BANK,
-    },
-  });
+  // // Subscriptions
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: -13.99,
+  //     description: 'Netflix Premium',
+  //     categoryId: catEntertainment.id,
+  //     isRecurring: true,
+  //     date: new Date('2025-12-01'),
+  //     source: TransactionSource.BANK,
+  //   },
+  // });
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      amount: -22.0,
-      description: 'ChatGPT Plus',
-      categoryId: catSoftware.id,
-      isRecurring: true,
-      date: new Date('2025-12-02'),
-      source: TransactionSource.BANK,
-    },
-  });
+  // await prisma.transaction.create({
+  //   data: {
+  //     accountId: bank.id,
+  //     amount: -22.0,
+  //     description: 'ChatGPT Plus',
+  //     categoryId: catSoftware.id,
+  //     isRecurring: true,
+  //     date: new Date('2025-12-02'),
+  //     source: TransactionSource.BANK,
+  //   },
+  // });
 
   console.log('✅ Transactions injected (Oct, Nov & Dec).');
   console.log('🚀 Seeding finished.');

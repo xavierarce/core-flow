@@ -67,9 +67,13 @@ model Transaction {
   accountId   String
   account     Account  @relation(fields: [accountId], references: [id])
   amount      Decimal  @db.Decimal(15, 2)
-  description String
-
-  categoryId  String?  
+  
+  // 👇 THE CHANGE
+  description String   // The Display Name (e.g. "McDonalds"). Editable.
+  rawText     String?  // Original Bank Text (e.g. "CB MCDONALDS 892..."). Read-only.
+  notes       String?  // Your private comments (e.g. "Late night snack").
+  
+  categoryId  String?
   category    Category? @relation(fields: [categoryId], references: [id])
   
   date        DateTime

@@ -36,26 +36,121 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [error, setError] = useState("");
 
+  // Helper: Find a value in a row by fuzzy matching column names
+  // This makes it robust against "Détail" vs "Detail" vs "DÃ©tail" (encoding errors)
+  const getValue = (row: any, searchTerms: string[]) => {
+    const keys = Object.keys(row);
+    for (const term of searchTerms) {
+      // Find a key that contains the search term (case insensitive)
+      const foundKey = keys.find((key) =>
+        key.toLowerCase().includes(term.toLowerCase())
+      );
+      if (foundKey && row[foundKey]) {
+        return row[foundKey];
+      }
+    }
+    return null;
+  };
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     setError("");
 
-    Papa.parse(file, {
-      header: true, // Expects headers like "Date, Description, Amount"
-      skipEmptyLines: true,
-      complete: (results) => {
-        // Simple validation: check if rows exist
-        if (results.data.length > 0) {
-          setParsedData(results.data);
-        } else {
-          setError("File appears empty or invalid.");
-        }
-      },
-      error: (err) => {
-        setError("Failed to parse CSV: " + err.message);
-      },
-    });
+    // 1. Read as UTF-8 (Standard for modern exports)
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+
+      if (!text) {
+        setError("File is empty");
+        return;
+      }
+
+      // SG Export Hack: Find the real header line
+      const lines = text.split(/\r\n|\n/);
+      const headerIndex = lines.findIndex(
+        (line) =>
+          line.toLowerCase().startsWith("date") || line.includes("Date de")
+      );
+
+      if (headerIndex === -1) {
+        setError("Could not find valid headers (Date, Montant, etc.)");
+        return;
+      }
+
+      const cleanCsv = lines.slice(headerIndex).join("\n");
+
+      Papa.parse(cleanCsv, {
+        header: true,
+        delimiter: ";", // SG uses semi-colons
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results.data.length > 0) {
+            parseRows(results.data);
+          } else {
+            setError("File appears empty after cleaning.");
+          }
+        },
+        error: (err: any) => {
+          setError("Failed to parse CSV: " + err.message);
+        },
+      });
+    };
+
+    reader.readAsText(file, "UTF-8");
   }, []);
+
+  const parseRows = (rows: any[]) => {
+    try {
+      const formatted = rows
+        .map((row: any) => {
+          // 2. Fuzzy Match Columns
+          // We look for 'tail' to match 'Détail', 'belle' for 'Libellé'
+          const dateRaw = getValue(row, ["Date"]);
+          const labelRaw = getValue(row, [
+            "tail",
+            "Detail",
+            "Libell",
+            "Desc",
+            "Label",
+          ]);
+          const noteRaw = getValue(row, ["Libell", "Label"]); // Fallback for extra info
+          const amountRaw = getValue(row, [
+            "Montant",
+            "Amount",
+            "Debit",
+            "Credit",
+          ]);
+
+          if (!dateRaw || !amountRaw) return null;
+
+          // 3. Fix Date (DD/MM/YYYY -> YYYY-MM-DD)
+          const [day, month, year] = dateRaw.split("/");
+          const isoDate = `${year}-${month}-${day}`;
+
+          if (new Date(isoDate).toString() === "Invalid Date") return null;
+
+          // 4. Fix Amount (French "-2,50" -> JS -2.50)
+          const cleanAmount = amountRaw.replace(",", ".").replace(/\s/g, "");
+          const amount = parseFloat(cleanAmount);
+
+          if (isNaN(amount)) return null;
+
+          return {
+            date: new Date(isoDate).toISOString(),
+            description: labelRaw || "Imported Transaction",
+            rawText: labelRaw, //
+            amount: amount,
+          };
+        })
+        .filter((tx) => tx !== null);
+
+      setParsedData(formatted);
+    } catch (e) {
+      console.error(e);
+      setError("Error mapping data. Check console.");
+    }
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -68,26 +163,13 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
     setLoading(true);
 
     try {
-      // 1. Map CSV columns to our Schema
-      // NOTE: This assumes your CSV has columns "Date", "Description", "Amount"
-      // You might need to adjust these keys based on your bank's file!
-      const formattedTransactions = parsedData
-        .map((row: any) => ({
-          date: new Date(row.Date || row.date).toISOString(),
-          description:
-            row.Description || row.description || row.Label || "Imported Tx",
-          amount: parseFloat(row.Amount || row.amount || "0"),
-        }))
-        .filter((tx) => !isNaN(tx.amount)); // Remove invalid rows
-
-      // 2. Send to Backend
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const res = await fetch(
         `${API_URL}/transactions/${selectedAccountId}/import`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formattedTransactions),
+          body: JSON.stringify(parsedData),
         }
       );
 
@@ -117,7 +199,6 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Account Selector */}
           <div className="grid gap-2">
             <label className="text-sm font-medium">Select Account</label>
             <Select
@@ -137,7 +218,6 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
             </Select>
           </div>
 
-          {/* Dropzone */}
           {!parsedData.length ? (
             <div
               {...getRootProps()}
@@ -145,7 +225,7 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
                 border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors
                 ${
                   isDragActive
-                    ? "border-blue-500 bg-blue-50"
+                    ? "border-emerald-500 bg-emerald-50"
                     : "border-slate-300 hover:bg-slate-50"
                 }
                 ${error ? "border-red-300 bg-red-50" : ""}
@@ -159,9 +239,6 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
                 ) : (
                   <p>Drag & drop your CSV here, or click to select</p>
                 )}
-                <p className="text-xs text-slate-400">
-                  Columns required: Date, Description, Amount
-                </p>
               </div>
             </div>
           ) : (
@@ -199,7 +276,7 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
           <Button
             onClick={handleImport}
             disabled={loading || parsedData.length === 0}
-            className="w-full bg-slate-900 text-white"
+            className="w-full bg-slate-900 text-white hover:bg-slate-800"
           >
             {loading ? "Importing..." : "Confirm Import"}
           </Button>
