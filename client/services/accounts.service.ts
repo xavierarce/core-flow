@@ -57,4 +57,17 @@ export const AccountsService = {
    */
   calculateNetWorth: (accounts: Account[]): number =>
     accounts.reduce((sum, acc) => sum + Number(acc.balance), 0),
+
+  /**
+   * Delete an account
+   * Mirrors NestJS DELETE /accounts/:id
+   */
+  async delete(id: string) {
+    const res = await fetch(`${API_URL}/accounts/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) throw new Error("Failed to delete account");
+    return res.json();
+  },
 };

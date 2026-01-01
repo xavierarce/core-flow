@@ -74,9 +74,24 @@ export class AccountsService {
     });
   }
 
-  remove(id: string) {
-    return this.prisma.account.delete({
-      where: { id },
+  // ... imports
+
+  // 3. Delete Account (And all its transactions)
+  async remove(id: string) {
+    // We use a transaction to ensure clean deletion
+    return this.prisma.$transaction(async (tx) => {
+      // A. Delete all transactions linked to this account
+      await tx.transaction.deleteMany({
+        where: { accountId: id },
+      });
+
+      // B. Delete any Assets linked to this account (Future proofing)
+      // await tx.asset.deleteMany({ where: { accountId: id } }); // Uncomment in Sprint 2
+
+      // C. Finally, delete the account itself
+      return tx.account.delete({
+        where: { id },
+      });
     });
   }
 }

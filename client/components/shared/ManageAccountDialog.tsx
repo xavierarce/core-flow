@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Account } from "@/types";
-import { PlusCircle, Settings2, Loader2 } from "lucide-react";
+import { PlusCircle, Settings2, Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AccountsService } from "@/services/accounts.service"; // 👈 Use the service!
 
@@ -56,8 +56,9 @@ interface ManageAccountDialogProps {
 export const ManageAccountDialog = ({ account }: ManageAccountDialogProps) => {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false); // 👈 New stateconst router = useRouter();
   const isEditing = !!account;
+  const router = useRouter();
 
   // 2. Setup Form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -100,6 +101,31 @@ export const ManageAccountDialog = ({ account }: ManageAccountDialogProps) => {
       // Ideally, show a Toast notification here
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!account) return;
+
+    // Simple native confirm for now (or use a custom Alert Dialog if you prefer)
+    if (
+      !confirm(
+        "Are you sure? This will delete the account and ALL its transactions. This cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await AccountsService.delete(account.id);
+      setOpen(false);
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete account");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -227,11 +253,31 @@ export const ManageAccountDialog = ({ account }: ManageAccountDialogProps) => {
             <Button
               type="submit"
               className="w-full bg-slate-900 hover:bg-slate-800"
-              disabled={isLoading}
+              disabled={isLoading || isDeleting}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isEditing ? "Save Changes" : "Create Account"}
             </Button>
+
+            {/* 👇 DANGER ZONE: Only show when Editing */}
+            {isEditing && (
+              <div className="pt-4 border-t border-slate-100 mt-4">
+                <Button
+                  type="button" // Important: type="button" so it doesn't submit the form
+                  variant="ghost"
+                  className="w-full text-red-500 hover:text-red-700 hover:bg-red-50 gap-2"
+                  onClick={handleDelete}
+                  disabled={isLoading || isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 size={16} />
+                  )}
+                  Delete Account
+                </Button>
+              </div>
+            )}
           </form>
         </Form>
       </DialogContent>
