@@ -18,7 +18,7 @@ export const Navbar = () => {
             <Command size={16} strokeWidth={3} />
           </div>
           <span className="font-bold tracking-tight text-lg text-slate-900">
-            CoreFlow
+            XAC Capital
           </span>
         </Link>
 

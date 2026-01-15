@@ -12,76 +12,109 @@ enum AccountType {
   SAVINGS
   INVESTMENT
   TRADING
-  CRYPTO        // 👈 Add this
-  REAL_ESTATE   // 👈 Add this
+  CRYPTO
+  REAL_ESTATE
 }
 
-model Account {
-  id           String        @id @default(uuid())
-  name         String        // e.g., "Main SG", "Boursorama PEA"
-  institution  String        // e.g., "Société Générale"
-  type         AccountType   @default(CASH)
-  balance      Decimal       @db.Decimal(15, 2)
-  currency     String        @default("EUR")
-  isAutomated  Boolean       @default(false)
-  transactions Transaction[]
-  updatedAt    DateTime      @updatedAt
-}
-
-// 1. Create an Enum (Fixed list of options)
 enum TransactionSource {
   MANUAL // Added by you
   BANK   // Synced from API (Read-Only)
 }
 
 
-model CategoryRule {
+// --- MODELS ---
+
+// 1. The User (The Tenant)
+model User {
   id        String   @id @default(uuid())
-  keyword   String   // e.g., "starbucks" (store in lowercase)
+  email     String   @unique
+  clerkId   String   @unique // The link to Clerk
+  
+  // The User owns everything
+  accounts     Account[]
+  categories   Category[]
+  transactions Transaction[]
+  rules        CategoryRule[] // 👈 Added this relation
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 2. The Accounts
+model Account {
+  id           String      @id @default(uuid())
+  name         String
+  institution  String
+  type         AccountType @default(CASH)
+  balance      Decimal     @db.Decimal(15, 2)
+  currency     String      @default("EUR")
+  isAutomated  Boolean     @default(false)
+  
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  transactions Transaction[]
+  
+  updatedAt    DateTime    @updatedAt
+}
+
+// 3. The Categories
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   @default("EXPENSE")
+  color     String   @default("#64748b")
+  icon      String?
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  transactions Transaction[]
+  rules        CategoryRule[]
+  
+  // Unique per user (You can have "Food", I can have "Food")
+  @@unique([name, userId]) 
+}
+
+// 4. The Auto-Categorization Rules
+model CategoryRule {
+  id         String   @id @default(uuid())
+  keyword    String   // e.g., "starbucks"
   
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
+
+  // 👇 ADDED: Link to User to scope the keyword
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
   
-  // Ensure we don't have duplicate rules for the same keyword
-  @@unique([keyword]) 
+  // 👇 FIXED: Unique per USER, not globally
+  @@unique([keyword, userId]) 
 }
 
-
-model Category {
-  id        String   @id @default(uuid())
-  name      String   @unique             
-  type      String   @default("EXPENSE") 
-  color     String   @default("#64748b") 
-  icon      String?                      
-  
-  transactions Transaction[]
-
-  // 👇 ADD THIS LINE (The Opposite Relation)
-  rules        CategoryRule[]
-  
-  createdAt    DateTime @default(now())
-}
-
+// 5. The Transactions
 model Transaction {
-  id          String   @id @default(uuid())
-  accountId   String
-  account     Account  @relation(fields: [accountId], references: [id])
-  amount      Decimal  @db.Decimal(15, 2)
+  id           String      @id @default(uuid())
+  amount       Decimal     @db.Decimal(15, 2)
+  description  String
+  rawText      String?
+  notes        String?
+  date         DateTime
+  isRecurring  Boolean     @default(false)
+  source       TransactionSource @default(MANUAL)
   
-  // 👇 THE CHANGE
-  description String   // The Display Name (e.g. "McDonalds"). Editable.
-  rawText     String?  // Original Bank Text (e.g. "CB MCDONALDS 892..."). Read-only.
-  notes       String?  // Your private comments (e.g. "Late night snack").
-  
-  categoryId  String?
-  category    Category? @relation(fields: [categoryId], references: [id])
-  
-  date        DateTime
-  isRecurring Boolean  @default(false)
-  source      TransactionSource @default(MANUAL)
+  // Links
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  accountId    String
+  account      Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  categoryId   String?
+  category     Category?   @relation(fields: [categoryId], references: [id])
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }

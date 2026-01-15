@@ -3,8 +3,8 @@ import { Category } from "@/types";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const CategoriesService = {
-  async getAll(): Promise<Category[]> {
-    if (!API_URL) return [];
+  async getAll(token: string | null): Promise<Category[]> {
+    if (!API_URL || !token) return [];
 
     const res = await fetch(`${API_URL}/categories`, {
       cache: "no-store", // Always fetch fresh categories

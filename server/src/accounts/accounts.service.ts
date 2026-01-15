@@ -1,33 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
-import { GetAccountsQueryDto } from 'src/transactions/dto/get-transaction.dto';
 
 @Injectable()
 export class AccountsService {
   constructor(private prisma: PrismaService) {}
 
-  // 1. Create Account (With optional initial balance transaction)
-  async create(dto: CreateAccountDto) {
+  // 1. Create Account (Now requires userId)
+  async create(userId: string, dto: CreateAccountDto) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Create Account
+      // A. Create Account linked to User
       const account = await tx.account.create({
         data: {
           name: dto.name,
           institution: dto.institution,
           type: dto.type,
-          // 👇 MAPPING: Input 'initialBalance' -> Database 'balance'
           balance: dto.initialBalance || 0,
           isAutomated: false,
+          userId: userId, // 👈 KEY FIX: Link to User
         },
       });
 
-      // 2. Create Transaction History
+      // B. Create Initial Transaction (if needed)
       if (dto.initialBalance && dto.initialBalance !== 0) {
         await tx.transaction.create({
           data: {
             accountId: account.id,
+            userId: userId, // 👈 KEY FIX: Link to User
             amount: dto.initialBalance,
             description: 'Initial Balance',
             date: new Date(),
@@ -40,58 +40,49 @@ export class AccountsService {
     });
   }
 
-  async findAll(start?: string, end?: string) {
+  // 2. Find All (Only for this user)
+  async findAll(userId: string) {
     return this.prisma.account.findMany({
-      orderBy: {
-        name: 'asc',
-      },
+      where: { userId }, // 👈 Security Filter
+      orderBy: { name: 'asc' },
       include: {
         transactions: {
-          where: {
-            date: {
-              gte: start ? new Date(start) : undefined,
-              lte: end ? new Date(end) : undefined,
-            },
-          },
+          take: 5, // Just show last 5 for preview
           orderBy: { date: 'desc' },
-          include: { category: true },
         },
       },
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.account.findUnique({
-      where: { id },
+  // 3. Find One (Ensure ownership)
+  async findOne(id: string, userId: string) {
+    const account = await this.prisma.account.findFirst({
+      where: { id, userId }, // 👈 Security Filter
     });
+
+    if (!account) throw new NotFoundException('Account not found');
+    return account;
   }
 
-  // 2. Update Account
-  async update(id: string, dto: UpdateAccountDto) {
+  // 4. Update
+  async update(id: string, userId: string, dto: UpdateAccountDto) {
+    // Check existence first
+    await this.findOne(id, userId);
+
     return this.prisma.account.update({
       where: { id },
       data: dto,
     });
   }
 
-  // ... imports
+  // 5. Remove
+  async remove(id: string, userId: string) {
+    // Check existence first
+    await this.findOne(id, userId);
 
-  // 3. Delete Account (And all its transactions)
-  async remove(id: string) {
-    // We use a transaction to ensure clean deletion
     return this.prisma.$transaction(async (tx) => {
-      // A. Delete all transactions linked to this account
-      await tx.transaction.deleteMany({
-        where: { accountId: id },
-      });
-
-      // B. Delete any Assets linked to this account (Future proofing)
-      // await tx.asset.deleteMany({ where: { accountId: id } }); // Uncomment in Sprint 2
-
-      // C. Finally, delete the account itself
-      return tx.account.delete({
-        where: { id },
-      });
+      await tx.transaction.deleteMany({ where: { accountId: id } });
+      return tx.account.delete({ where: { id } });
     });
   }
 }

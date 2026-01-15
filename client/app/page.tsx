@@ -1,3 +1,4 @@
+import { auth } from "@clerk/nextjs/server";
 import { AccountsService } from "@/services/accounts.service";
 import { CategoriesService } from "@/services/categories.service";
 import {
@@ -25,6 +26,10 @@ interface HomeProps {
 }
 
 const Home = async ({ searchParams }: HomeProps) => {
+  const { getToken } = await auth();
+  const token = await getToken();
+  if (!token) return null;
+
   const params = await searchParams;
   const selectedDate = params.date ? new Date(params.date) : new Date();
   const monthName = selectedDate.toLocaleString("en-US", { month: "long" });
@@ -35,11 +40,11 @@ const Home = async ({ searchParams }: HomeProps) => {
   const chartStart = subMonths(new Date(), 5).toISOString();
   const chartEnd = endOfMonth(new Date()).toISOString();
 
-  // Fetch Data
+  // 2. 📡 Pass Token to Services
   const [currentAccounts, trendAccounts, categories] = await Promise.all([
-    AccountsService.getAll(viewStart, viewEnd),
-    AccountsService.getAll(chartStart, chartEnd),
-    CategoriesService.getAll(),
+    AccountsService.getAll(token, viewStart, viewEnd), // 👈 Pass token
+    AccountsService.getAll(token, chartStart, chartEnd), // 👈 Pass token
+    CategoriesService.getAll(token),
   ]);
 
   // Calc Stats
