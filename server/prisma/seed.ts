@@ -7,120 +7,180 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-async function main() {
-  console.log('🌱 Start seeding...');
+// 👇👇👇 PASTE YOUR REAL CLERK ID HERE 👇👇👇
+// (Find it in Clerk Dashboard > Users > Select your user > ID is at the top)
+const MY_CLERK_ID = 'user_38IgHNJc4I5gDlwvYaj8Hm5JuUf';
 
-  // 1. Clean DB (Order matters because of Foreign Keys!)
+async function main() {
+  console.log(`🌱 Start seeding for Clerk ID: ${MY_CLERK_ID}...`);
+
+  // 1. Clean DB (Delete everything to start fresh)
   try {
+    console.log('🧹 Cleaning database...');
+    // We delete data ONLY for this user (safest approach)
+    // or delete global if you are in dev mode.
+    // Let's wipe everything to be clean for dev.
     await prisma.categoryRule.deleteMany();
     await prisma.transaction.deleteMany();
     await prisma.account.deleteMany();
     await prisma.category.deleteMany();
-    await prisma.user.deleteMany(); // 👈 Delete users last (parents)
-    console.log('🧹 Database cleared');
+    await prisma.user.deleteMany();
   } catch (e) {
-    console.log('⚠️ Cleanup failed (or first run):', e);
+    console.log('⚠️ Cleanup warning:', e);
   }
 
-  // 2. Create the MASTER USER 👤
-  console.log('👤 Creating Demo User...');
+  // 2. Create the User (Linked to your Real Clerk Account) 👤
+  console.log('👤 Creating User...');
   const user = await prisma.user.create({
     data: {
-      email: 'demo@xaccapital.com',
-      // 👇 TRICK: If you want to see this data, replace this ID
-      // with your REAL Clerk ID after you log in!
-      clerkId: 'user_demo_123456',
+      email: 'my_seed_email@xac.com', // Placeholder, Clerk holds the real one
+      clerkId: MY_CLERK_ID,
     },
   });
+
+  // 3. Create Categories (So your charts work!) 🏷️
+  console.log('🏷️ Creating Categories...');
+
+  // Helper to create category easily
+  const createCat = (
+    name: string,
+    type: 'INCOME' | 'EXPENSE',
+    color: string,
+    icon: string,
+  ) =>
+    prisma.category.create({
+      data: { name, type, color, icon, userId: user.id },
+    });
+
+  const salaryCat = await createCat('Salary', 'INCOME', '#10b981', 'wallet');
+  const foodCat = await createCat('Food', 'EXPENSE', '#f59e0b', 'utensils');
+  const housingCat = await createCat('Housing', 'EXPENSE', '#f43f5e', 'home');
+  const techCat = await createCat('Tech', 'EXPENSE', '#3b82f6', 'laptop');
+  const investCat = await createCat(
+    'Investments',
+    'EXPENSE',
+    '#0ea5e9',
+    'trending-up',
+  );
 
   // 4. Create Accounts 🏦
   console.log('🏦 Creating Accounts...');
 
   const bank = await prisma.account.create({
     data: {
-      name: 'Compte Courant',
-      institution: 'Société Générale',
+      name: 'Société Générale',
+      institution: 'Bank',
       balance: 4250.0,
       currency: 'EUR',
       type: AccountType.CASH,
-      userId: user.id, // 👈 Link to User
+      userId: user.id,
     },
   });
 
   const tradingAccount = await prisma.account.create({
     data: {
-      name: 'Etoro',
+      name: 'Etoro Portfolio',
       institution: 'EToro',
-      balance: 2500.0,
+      balance: 12500.0,
       currency: 'USD',
       type: AccountType.INVESTMENT,
-      userId: user.id, // 👈 Link to User
+      userId: user.id,
     },
   });
 
-  // 5. INJECT TRANSACTIONS 🧾
+  // 5. INJECT TRANSACTIONS (Linked to Categories!) 🧾
   console.log('🧾 Injecting Transactions...');
 
-  await prisma.transaction.create({
-    data: {
-      accountId: tradingAccount.id,
-      userId: user.id, // 👈 Link to User
-      amount: -2000.0,
-      description: 'LEVIS Stock',
-      date: new Date('2025-12-20'),
-      source: TransactionSource.MANUAL,
-    },
-  });
+  // Helper for clean transaction creation
+  const createTx = (
+    desc: string,
+    amount: number,
+    date: string,
+    accountId: string,
+    categoryId?: string,
+    isRecurring = false,
+  ) =>
+    prisma.transaction.create({
+      data: {
+        accountId,
+        userId: user.id,
+        amount,
+        description: desc,
+        date: new Date(date),
+        source: TransactionSource.MANUAL,
+        isRecurring,
+        categoryId, // 👈 KEY: Link to category
+      },
+    });
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      userId: user.id, // 👈 Link to User
-      amount: 3200.0,
-      description: 'Tech Corp Salary',
-      date: new Date('2025-10-28'),
-      source: TransactionSource.BANK,
-      isRecurring: true,
-    },
-  });
+  // Income
+  await createTx(
+    'Tech Corp Salary',
+    3200.0,
+    '2025-10-28',
+    bank.id,
+    salaryCat.id,
+    true,
+  );
+  await createTx(
+    'Tech Corp Salary',
+    3200.0,
+    '2025-11-28',
+    bank.id,
+    salaryCat.id,
+    true,
+  );
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      userId: user.id, // 👈 Link to User
-      amount: -850.0,
-      description: 'Rent Paris 11e',
-      date: new Date('2025-10-05'),
-      source: TransactionSource.BANK,
-      isRecurring: true,
-    },
-  });
+  // Expenses
+  await createTx(
+    'Rent Paris 11e',
+    -1250.0,
+    '2025-11-05',
+    bank.id,
+    housingCat.id,
+    true,
+  );
+  await createTx(
+    'McDonalds Late Night',
+    -15.5,
+    '2025-12-20',
+    bank.id,
+    foodCat.id,
+  );
+  await createTx(
+    'Carrefour Groceries',
+    -85.2,
+    '2025-12-15',
+    bank.id,
+    foodCat.id,
+  );
+  await createTx(
+    'ChatGPT Plus',
+    -22.0,
+    '2025-12-02',
+    bank.id,
+    techCat.id,
+    true,
+  );
 
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      userId: user.id, // 👈 Link to User
-      amount: -15.5,
-      description: 'McDonalds Late Night',
-      date: new Date('2025-12-20'),
-      source: TransactionSource.BANK,
-    },
-  });
-
-  await prisma.transaction.create({
-    data: {
-      accountId: bank.id,
-      userId: user.id, // 👈 Link to User
-      amount: -22.0,
-      description: 'ChatGPT Plus',
-      isRecurring: true,
-      date: new Date('2025-12-02'),
-      source: TransactionSource.BANK,
-    },
-  });
+  // Investments
+  await createTx(
+    'LEVIS Stock Purchase',
+    -2000.0,
+    '2025-12-20',
+    tradingAccount.id,
+    investCat.id,
+  );
+  await createTx(
+    'Apple Dividend',
+    150.0,
+    '2025-12-25',
+    tradingAccount.id,
+    investCat.id,
+  ); // Dividend is "negative expense" or separate income, depends on your logic.
 
   console.log('✅ Transactions injected.');
-  console.log('🚀 Seeding finished. User ID:', user.id);
+  console.log(`🚀 Seeding finished. Log in with your Clerk user to see data!`);
 }
 
 main()
