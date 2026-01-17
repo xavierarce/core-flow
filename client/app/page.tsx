@@ -1,13 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { AccountsService } from "@/services/accounts.service";
-import { CategoriesService } from "@/services/categories.service";
-import {
-  AppCard,
-  TransactionList,
-  WealthChart,
-  CashFlowChart,
-  AddTransactionDialog,
-} from "@/components/shared";
+import { WealthChart, CashFlowChart } from "@/components/shared";
 import { ExpenseChart } from "@/components/shared/ExpenseChart";
 import { MonthFilter } from "@/components/shared/MonthFilter";
 import {
@@ -15,9 +8,7 @@ import {
   calculateExpenseBreakdown,
 } from "@/lib/finance.utils";
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
-import { Account, Category } from "@/types";
-import { CsvImporter } from "@/components/shared/CsvImporter";
-import { ManageAccountDialog } from "@/components/shared/ManageAccountDialog";
+import { Account } from "@/types";
 
 interface HomeProps {
   searchParams: Promise<{
@@ -25,7 +16,7 @@ interface HomeProps {
   }>;
 }
 
-const Home = async ({ searchParams }: HomeProps) => {
+export default async function Dashboard({ searchParams }: HomeProps) {
   const { getToken } = await auth();
   const token = await getToken();
   if (!token) return null;
@@ -40,14 +31,13 @@ const Home = async ({ searchParams }: HomeProps) => {
   const chartStart = subMonths(new Date(), 5).toISOString();
   const chartEnd = endOfMonth(new Date()).toISOString();
 
-  // 2. 📡 Pass Token to Services
-  const [currentAccounts, trendAccounts, categories] = await Promise.all([
-    AccountsService.getAll(token, viewStart, viewEnd), // 👈 Pass token
-    AccountsService.getAll(token, chartStart, chartEnd), // 👈 Pass token
-    CategoriesService.getAll(token),
+  // 1. Fetch Data (Only what is needed for charts)
+  const [currentAccounts, trendAccounts] = await Promise.all([
+    AccountsService.getAll(token, viewStart, viewEnd),
+    AccountsService.getAll(token, chartStart, chartEnd),
   ]);
 
-  // Calc Stats
+  // 2. Calculate Executive Metrics
   const totalWealth = AccountsService.calculateNetWorth(currentAccounts);
 
   const wealthData = currentAccounts.map((acc: Account) => ({
@@ -57,10 +47,6 @@ const Home = async ({ searchParams }: HomeProps) => {
 
   const cashFlowData = calculateMonthlyCashFlow(trendAccounts);
   const expenseData = calculateExpenseBreakdown(currentAccounts);
-  // Filter accounts for the dropdowns
-  const manualAccounts = currentAccounts.filter(
-    (acc: Account) => !acc.isAutomated
-  );
 
   return (
     <main className="min-h-screen bg-slate-50/50">
@@ -71,11 +57,11 @@ const Home = async ({ searchParams }: HomeProps) => {
               Dashboard
             </h1>
             <p className="text-slate-500 mt-2 font-medium">
-              Financial overview for Xavier
+              Your financial health at a glance.
             </p>
           </div>
 
-          <div className="text-right p-2 bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <div className="text-right p-4 bg-white rounded-2xl border border-slate-100 shadow-sm min-w-[200px]">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
               Total Net Worth
             </p>
@@ -85,77 +71,43 @@ const Home = async ({ searchParams }: HomeProps) => {
           </div>
         </div>
 
-        {/* --- SECTION 1: GLOBAL TRENDS --- */}
+        {/* SECTION 1: MACRO TRENDS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Wealth Distribution */}
           <div className="md:col-span-1">
             <WealthChart data={wealthData} />
           </div>
+          {/* Cashflow Trend (Income vs Expense) */}
           <div className="md:col-span-2">
             <CashFlowChart data={cashFlowData} />
           </div>
         </div>
 
-        {/* --- SECTION 2: MONTHLY FOCUS --- */}
+        {/* SECTION 2: MONTHLY FOCUS */}
         <div className="pt-8 border-t border-slate-200">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <div>
               <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                {monthName} <span className="text-slate-600">Activity</span>
+                {monthName} <span className="text-slate-600">Focus</span>
               </h2>
-              <p className="text-slate-500 text-sm mt-1">
-                Deep dive into expenses and income
-              </p>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <MonthFilter />
-              <div className="w-px h-6 bg-slate-200 mx-1" />
-
-              {/* Only pass MANUAL accounts to these tools */}
-              <CsvImporter accounts={manualAccounts} />
-              <AddTransactionDialog
-                accounts={manualAccounts}
-                categories={categories as Category[]}
-              />
-
-              {/* New Button to Create Account */}
-              <ManageAccountDialog />
-            </div>
+            {/* Simple date filter, no heavy buttons */}
+            <MonthFilter />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* 1. Expense Chart */}
-            <div className="md:col-span-1 h-full">
+            {/* Expense Breakdown */}
+            <div className="md:col-span-1 h-full min-h-[300px]">
               <ExpenseChart data={expenseData} />
             </div>
 
-            {/* 2. Account Transaction Lists */}
-            {currentAccounts.map((account: Account) => (
-              <div key={account.id} className="md:col-span-1">
-                <AppCard
-                  title={account.name}
-                  subtitle={account.institution}
-                  // Add the Edit button to the card header
-                  action={<ManageAccountDialog account={account} />}
-                  extraHeader={
-                    <div className="text-xl font-bold text-slate-700 font-mono tracking-tight">
-                      {account.currency === "USD" ? "$" : "€"}
-                      {Number(account.balance).toLocaleString()}
-                    </div>
-                  }
-                >
-                  <TransactionList
-                    transactions={account.transactions}
-                    categories={categories as Category[]}
-                  />
-                </AppCard>
-              </div>
-            ))}
+            {/* Placeholder for "Recent Transactions" (We will build this widget later) */}
+            <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex items-center justify-center text-slate-400">
+              <p>Recent Activity Widget coming here...</p>
+            </div>
           </div>
         </div>
       </div>
     </main>
   );
-};
-
-export default Home;
+}

@@ -41,14 +41,28 @@ export class AccountsService {
   }
 
   // 2. Find All (Only for this user)
-  async findAll(userId: string) {
+  async findAll(userId: string, start?: string, end?: string) {
+    // 1. Build Transaction Filter
+    const transactionWhere: any = {};
+
+    if (start && end) {
+      transactionWhere.date = {
+        gte: new Date(start),
+        lte: new Date(end),
+      };
+    }
+
     return this.prisma.account.findMany({
-      where: { userId }, // 👈 Security Filter
+      where: { userId },
       orderBy: { name: 'asc' },
       include: {
         transactions: {
-          take: 5, // Just show last 5 for preview
+          where: transactionWhere, // 👈 Apply Date Filter
           orderBy: { date: 'desc' },
+          include: {
+            category: true,
+          },
+          ...(start && end ? {} : { take: 5 }),
         },
       },
     });

@@ -33,11 +33,11 @@ export class AccountsController {
 
   @Get()
   findAll(
-    @CurrentUser() user: User, // 👈 Get User
-    @Query('start') start?: string,
-    @Query('end') end?: string,
+    @CurrentUser() user: User,
+    @Query('start') start?: string, // 👈 Receive start date
+    @Query('end') end?: string, // 👈 Receive end date
   ) {
-    return this.accountsService.findAll(user.id);
+    return this.accountsService.findAll(user.id, start, end);
   }
 
   @Get(':id')
