@@ -1,6 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
 import { AccountsService } from "@/services/accounts.service";
-import { WealthChart, CashFlowChart } from "@/components/shared";
+import { CategoriesService } from "@/services/categories.service"; // 👈 New Import
+import {
+  WealthChart,
+  CashFlowChart,
+  AppCard, // 👈 Use your Card
+  TransactionList, // 👈 Reuse the list component
+} from "@/components/shared";
 import { ExpenseChart } from "@/components/shared/ExpenseChart";
 import { MonthFilter } from "@/components/shared/MonthFilter";
 import {
@@ -8,7 +14,9 @@ import {
   calculateExpenseBreakdown,
 } from "@/lib/finance.utils";
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
-import { Account } from "@/types";
+import { Account, Category } from "@/types"; // 👈 Import Category type
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 interface HomeProps {
   searchParams: Promise<{
@@ -25,19 +33,19 @@ export default async function Dashboard({ searchParams }: HomeProps) {
   const selectedDate = params.date ? new Date(params.date) : new Date();
   const monthName = selectedDate.toLocaleString("en-US", { month: "long" });
 
-  // Dates
   const viewStart = startOfMonth(selectedDate).toISOString();
   const viewEnd = endOfMonth(selectedDate).toISOString();
   const chartStart = subMonths(new Date(), 5).toISOString();
   const chartEnd = endOfMonth(new Date()).toISOString();
 
-  // 1. Fetch Data (Only what is needed for charts)
-  const [currentAccounts, trendAccounts] = await Promise.all([
+  // 1. Fetch Data (Added Categories)
+  const [currentAccounts, trendAccounts, categories] = await Promise.all([
     AccountsService.getAll(token, viewStart, viewEnd),
     AccountsService.getAll(token, chartStart, chartEnd),
+    CategoriesService.getAll(token), // 👈 Needed for the list badges
   ]);
 
-  // 2. Calculate Executive Metrics
+  // 2. Metrics
   const totalWealth = AccountsService.calculateNetWorth(currentAccounts);
 
   const wealthData = currentAccounts.map((acc: Account) => ({
@@ -48,9 +56,21 @@ export default async function Dashboard({ searchParams }: HomeProps) {
   const cashFlowData = calculateMonthlyCashFlow(trendAccounts);
   const expenseData = calculateExpenseBreakdown(currentAccounts);
 
+  // 3. Prepare Recent Activity (The Logic) 🧠
+  // We take all transactions from all accounts, flatten them into one big list,
+  // sort by date, and take the top 5.
+  const recentActivity = currentAccounts
+    .flatMap((acc: Account) => acc.transactions)
+    .sort(
+      (a: any, b: any) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime(),
+    )
+    .slice(0, 5);
+
   return (
     <main className="min-h-screen bg-slate-50/50">
       <div className="p-8 max-w-7xl mx-auto space-y-12">
+        {/* HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-6">
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
@@ -71,13 +91,11 @@ export default async function Dashboard({ searchParams }: HomeProps) {
           </div>
         </div>
 
-        {/* SECTION 1: MACRO TRENDS */}
+        {/* SECTION 1: MACRO */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Wealth Distribution */}
           <div className="md:col-span-1">
             <WealthChart data={wealthData} />
           </div>
-          {/* Cashflow Trend (Income vs Expense) */}
           <div className="md:col-span-2">
             <CashFlowChart data={cashFlowData} />
           </div>
@@ -91,19 +109,41 @@ export default async function Dashboard({ searchParams }: HomeProps) {
                 {monthName} <span className="text-slate-600">Focus</span>
               </h2>
             </div>
-            {/* Simple date filter, no heavy buttons */}
             <MonthFilter />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Expense Breakdown */}
+            {/* 1. Expense Breakdown */}
             <div className="md:col-span-1 h-full min-h-[300px]">
               <ExpenseChart data={expenseData} />
             </div>
 
-            {/* Placeholder for "Recent Transactions" (We will build this widget later) */}
-            <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex items-center justify-center text-slate-400">
-              <p>Recent Activity Widget coming here...</p>
+            {/* 2. Recent Activity Widget 🧾 */}
+            <div className="md:col-span-2">
+              <AppCard
+                title="Recent Activity"
+                subtitle="Last 5 Transactions"
+                className="h-full"
+                action={
+                  <Link
+                    href="/transactions"
+                    className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                  >
+                    View All <ArrowRight size={12} />
+                  </Link>
+                }
+              >
+                {recentActivity.length > 0 ? (
+                  <TransactionList
+                    transactions={recentActivity}
+                    categories={categories as Category[]}
+                  />
+                ) : (
+                  <div className="h-40 flex items-center justify-center text-slate-400 text-sm italic">
+                    No activity this month.
+                  </div>
+                )}
+              </AppCard>
             </div>
           </div>
         </div>
