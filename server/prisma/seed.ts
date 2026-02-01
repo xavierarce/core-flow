@@ -2,185 +2,241 @@ import { PrismaClient, AccountType, TransactionSource } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
+// 👇 CONFIGURATION
+const MY_CLERK_ID = 'user_38IgHNJc4I5gDlwvYaj8Hm5JuUf';
+const HISTORY_MONTHS = 4;
+const SALARY_AMOUNT = 3200;
+const RENT_AMOUNT = 1250;
+
 const connectionString = `${process.env.DATABASE_URL}`;
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// 👇👇👇 PASTE YOUR REAL CLERK ID HERE 👇👇👇
-// (Find it in Clerk Dashboard > Users > Select your user > ID is at the top)
-const MY_CLERK_ID = 'user_38IgHNJc4I5gDlwvYaj8Hm5JuUf';
+// --- SMART HELPERS 🧠 ---
+
+const randomAmount = (min: number, max: number) => {
+  const num = Math.random() * (max - min) + min;
+  return parseFloat(num.toFixed(2));
+};
+
+// Returns date if it is in the past, otherwise null (skips future bills)
+const getPastDateInMonth = (monthOffset: number, day: number) => {
+  const now = new Date();
+  const targetDate = new Date();
+
+  // Go back 'monthOffset' months
+  targetDate.setMonth(now.getMonth() - monthOffset);
+  targetDate.setDate(day);
+
+  // 🛑 SAFETY CHECK: If target is in the future, return null
+  if (targetDate > now) return null;
+
+  return targetDate;
+};
+
+// Returns a random date, but capped at "Today" if it's the current month
+const getRandomPastDateInMonth = (monthOffset: number) => {
+  const now = new Date();
+  const date = new Date();
+
+  date.setMonth(now.getMonth() - monthOffset);
+
+  // Find the max valid day for this month
+  const daysInMonth = new Date(
+    date.getFullYear(),
+    date.getMonth() + 1,
+    0,
+  ).getDate();
+
+  let maxDay = daysInMonth;
+
+  // 🛑 SAFETY CHECK: If it's the current month, cap at today!
+  if (monthOffset === 0) {
+    maxDay = now.getDate();
+  }
+
+  const randomDay = Math.floor(Math.random() * maxDay) + 1;
+  date.setDate(randomDay);
+
+  return date;
+};
 
 async function main() {
-  console.log(`🌱 Start seeding for Clerk ID: ${MY_CLERK_ID}...`);
+  console.log(`🌱 Starting Reality-Check Seed for: ${MY_CLERK_ID}`);
 
-  // 1. Clean DB (Delete everything to start fresh)
   try {
-    console.log('🧹 Cleaning database...');
-    // We delete data ONLY for this user (safest approach)
-    // or delete global if you are in dev mode.
-    // Let's wipe everything to be clean for dev.
-    await prisma.categoryRule.deleteMany();
     await prisma.transaction.deleteMany();
     await prisma.account.deleteMany();
     await prisma.category.deleteMany();
     await prisma.user.deleteMany();
   } catch (e) {
-    console.log('⚠️ Cleanup warning:', e);
+    console.log('⚠️ DB clean.');
   }
 
-  // 2. Create the User (Linked to your Real Clerk Account) 👤
-  console.log('👤 Creating User...');
   const user = await prisma.user.create({
-    data: {
-      email: 'my_seed_email@xac.com', // Placeholder, Clerk holds the real one
-      clerkId: MY_CLERK_ID,
-    },
+    data: { email: 'demo@xaccapital.com', clerkId: MY_CLERK_ID },
   });
 
-  // 3. Create Categories (So your charts work!) 🏷️
-  console.log('🏷️ Creating Categories...');
+  // Create Categories
+  const catData = [
+    { key: 'Salary', type: 'INCOME', color: '#10b981', icon: 'wallet' },
+    { key: 'Housing', type: 'EXPENSE', color: '#f43f5e', icon: 'home' },
+    { key: 'Food', type: 'EXPENSE', color: '#f59e0b', icon: 'utensils' },
+    { key: 'Transport', type: 'EXPENSE', color: '#8b5cf6', icon: 'car' },
+    {
+      key: 'Shopping',
+      type: 'EXPENSE',
+      color: '#ec4899',
+      icon: 'shopping-bag',
+    },
+    { key: 'Tech', type: 'EXPENSE', color: '#3b82f6', icon: 'laptop' },
+    {
+      key: 'Investments',
+      type: 'EXPENSE',
+      color: '#0ea5e9',
+      icon: 'trending-up',
+    },
+  ] as const;
 
-  // Helper to create category easily
-  const createCat = (
-    name: string,
-    type: 'INCOME' | 'EXPENSE',
-    color: string,
-    icon: string,
-  ) =>
-    prisma.category.create({
-      data: { name, type, color, icon, userId: user.id },
+  const cats: Record<string, string> = {};
+  for (const c of catData) {
+    const res = await prisma.category.create({
+      data: {
+        name: c.key,
+        type: c.type as any,
+        color: c.color,
+        icon: c.icon,
+        userId: user.id,
+      },
     });
-
-  const salaryCat = await createCat('Salary', 'INCOME', '#10b981', 'wallet');
-  const foodCat = await createCat('Food', 'EXPENSE', '#f59e0b', 'utensils');
-  const housingCat = await createCat('Housing', 'EXPENSE', '#f43f5e', 'home');
-  const techCat = await createCat('Tech', 'EXPENSE', '#3b82f6', 'laptop');
-  const investCat = await createCat(
-    'Investments',
-    'EXPENSE',
-    '#0ea5e9',
-    'trending-up',
-  );
-
-  // 4. Create Accounts 🏦
-  console.log('🏦 Creating Accounts...');
+    cats[c.key] = res.id;
+  }
 
   const bank = await prisma.account.create({
     data: {
       name: 'Société Générale',
       institution: 'Bank',
-      balance: 4250.0,
+      balance: 0,
       currency: 'EUR',
       type: AccountType.CASH,
       userId: user.id,
     },
   });
 
-  const tradingAccount = await prisma.account.create({
+  const trading = await prisma.account.create({
     data: {
-      name: 'Etoro Portfolio',
-      institution: 'EToro',
-      balance: 12500.0,
+      name: 'Etoro',
+      institution: 'Investment',
+      balance: 15000,
       currency: 'USD',
       type: AccountType.INVESTMENT,
       userId: user.id,
     },
   });
 
-  // 5. INJECT TRANSACTIONS (Linked to Categories!) 🧾
-  console.log('🧾 Injecting Transactions...');
+  // --- GENERATOR ---
+  console.log(`🧾 Generating history...`);
+  const transactionsToCreate: any[] = [];
+  let currentBalance = 0;
 
-  // Helper for clean transaction creation
-  const createTx = (
-    desc: string,
-    amount: number,
-    date: string,
-    accountId: string,
-    categoryId?: string,
-    isRecurring = false,
-  ) =>
-    prisma.transaction.create({
-      data: {
-        accountId,
+  for (let i = HISTORY_MONTHS; i >= 0; i--) {
+    // A. RECURRING (Skipped if date > today)
+    const addRecurring = (
+      desc: string,
+      amount: number,
+      day: number,
+      catId: string,
+      isIncome = false,
+    ) => {
+      const date = getPastDateInMonth(i, day);
+      if (!date) return; // 👈 Skip future bills!
+
+      transactionsToCreate.push({
+        accountId: bank.id,
         userId: user.id,
-        amount,
+        amount: isIncome ? amount : -amount,
         description: desc,
-        date: new Date(date),
+        date: date,
         source: TransactionSource.MANUAL,
-        isRecurring,
-        categoryId, // 👈 KEY: Link to category
-      },
-    });
+        isRecurring: true,
+        categoryId: catId,
+      });
+      currentBalance += isIncome ? amount : -amount;
+    };
 
-  // Income
-  await createTx(
-    'Tech Corp Salary',
-    3200.0,
-    '2025-10-28',
-    bank.id,
-    salaryCat.id,
-    true,
-  );
-  await createTx(
-    'Tech Corp Salary',
-    3200.0,
-    '2025-11-28',
-    bank.id,
-    salaryCat.id,
-    true,
-  );
+    addRecurring('Tech Corp Salary', SALARY_AMOUNT, 28, cats.Salary, true);
+    addRecurring('Rent Paris', RENT_AMOUNT, 5, cats.Housing); // Will show for Feb 1st only if run after 5th
+    addRecurring('Navigo Pass', 84.1, 2, cats.Transport); // Will show for Feb 1st
+    addRecurring('Spotify Premium', 12.99, 15, cats.Tech);
+    addRecurring('Internet Fiber', 39.99, 10, cats.Tech);
 
-  // Expenses
-  await createTx(
-    'Rent Paris 11e',
-    -1250.0,
-    '2025-11-05',
-    bank.id,
-    housingCat.id,
-    true,
-  );
-  await createTx(
-    'McDonalds Late Night',
-    -15.5,
-    '2025-12-20',
-    bank.id,
-    foodCat.id,
-  );
-  await createTx(
-    'Carrefour Groceries',
-    -85.2,
-    '2025-12-15',
-    bank.id,
-    foodCat.id,
-  );
-  await createTx(
-    'ChatGPT Plus',
-    -22.0,
-    '2025-12-02',
-    bank.id,
-    techCat.id,
-    true,
-  );
+    // B. HABITS (Capped at today)
+    const addHabit = (
+      descOptions: string[],
+      min: number,
+      max: number,
+      count: number,
+      catId: string,
+    ) => {
+      // If it's the current month and today is the 1st, reduce count significantly
+      // (You can't eat out 8 times in 1 day)
+      let adjustedCount = count;
+      if (i === 0)
+        adjustedCount = Math.ceil((count / 30) * new Date().getDate());
 
-  // Investments
-  await createTx(
-    'LEVIS Stock Purchase',
-    -2000.0,
-    '2025-12-20',
-    tradingAccount.id,
-    investCat.id,
-  );
-  await createTx(
-    'Apple Dividend',
-    150.0,
-    '2025-12-25',
-    tradingAccount.id,
-    investCat.id,
-  ); // Dividend is "negative expense" or separate income, depends on your logic.
+      for (let j = 0; j < adjustedCount; j++) {
+        const desc =
+          descOptions[Math.floor(Math.random() * descOptions.length)];
+        const amount = randomAmount(min, max);
 
-  console.log('✅ Transactions injected.');
-  console.log(`🚀 Seeding finished. Log in with your Clerk user to see data!`);
+        transactionsToCreate.push({
+          accountId: bank.id,
+          userId: user.id,
+          amount: -amount,
+          description: desc,
+          date: getRandomPastDateInMonth(i), // 👈 Capped at today
+          source: TransactionSource.MANUAL,
+          isRecurring: false,
+          categoryId: catId,
+        });
+        currentBalance -= amount;
+      }
+    };
+
+    addHabit(
+      ['Carrefour City', 'Monoprix', 'Bakery', 'Uber Eats', 'Restaurant'],
+      15,
+      80,
+      8,
+      cats.Food,
+    );
+    addHabit(['Amazon', 'Zara', 'FNAC', 'Uniqlo'], 30, 150, 2, cats.Shopping);
+    addHabit(['Uber', 'Bolt', 'Train Ticket'], 10, 45, 3, cats.Transport);
+  }
+
+  // C. ONE-OFF
+  // Investment happened last month, so it's safe
+  transactionsToCreate.push({
+    accountId: trading.id,
+    userId: user.id,
+    amount: -2000,
+    description: 'NVIDIA Stock Buy',
+    date: getPastDateInMonth(1, 15),
+    categoryId: cats.Investments,
+  });
+
+  console.log(`💾 Saving ${transactionsToCreate.length} transactions...`);
+  for (const tx of transactionsToCreate) {
+    if (tx.date) await prisma.transaction.create({ data: tx }); // Check for null dates just in case
+  }
+
+  await prisma.account.update({
+    where: { id: bank.id },
+    data: { balance: parseFloat(currentBalance.toFixed(2)) },
+  });
+
+  console.log(`✅ Finished! Bank Balance: €${currentBalance.toFixed(2)}`);
 }
 
 main()
