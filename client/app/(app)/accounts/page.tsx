@@ -5,7 +5,7 @@ import { Account } from "@/types";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AccountCard } from "@/components/features/accounts/AccountCard";
-import { ManageAccountDialog } from "@/components/shared/ManageAccountDialog";
+import { ManageAccountDialog } from "@/components/shared";
 
 export default async function AccountsPage() {
   const { getToken } = await auth();

@@ -5,8 +5,7 @@ import { Account } from "@/types";
 import { formatBalance, getAccountIcon } from "@/lib/account.utils";
 
 import { PageHeader } from "@/components/layout/PageHeader";
-import { AppCard } from "@/components/shared";
-import { WealthChart } from "@/components/shared/WealthChart";
+import { AppCard, WealthChart } from "@/components/shared";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   CASH: "Cash & Banking",

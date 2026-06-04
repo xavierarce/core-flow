@@ -9,8 +9,7 @@ import { calculateMonthlyCashFlow, calculateExpenseBreakdown } from "@/lib/finan
 import { Account, Category, Transaction } from "@/types";
 
 import { PageHeader } from "@/components/layout/PageHeader";
-import { AppCard, WealthChart, CashFlowChart, TransactionList, MonthFilter } from "@/components/shared";
-import { ExpenseChart } from "@/components/shared/ExpenseChart";
+import { AppCard, WealthChart, CashFlowChart, TransactionList, MonthFilter, ExpenseChart } from "@/components/shared";
 
 interface DashboardProps {
   searchParams: Promise<{ date?: string }>;

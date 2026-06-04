@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
-import { AppCard } from "@/components/shared";
-import { AppButton } from "@/components/shared/AppButton";
+import { AppCard, AppButton } from "@/components/shared";
 import { CategoriesService } from "@/services/categories.service";
 import { Category } from "@/types";
 

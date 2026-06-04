@@ -1,5 +1,5 @@
 import type { Account } from "@/types";
-import { ManageAccountDialog } from "@/components/shared/ManageAccountDialog";
+import { ManageAccountDialog } from "@/components/shared";
 import { getAccountIcon, formatBalance } from "@/lib/account.utils";
 
 interface AccountCardProps {

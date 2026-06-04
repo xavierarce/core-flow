@@ -10,7 +10,7 @@ export const formSchema = z.object({
   accountId: z.string().min(1, "Account is required"),
   categoryId: z.string().optional(),
   date: z.string(),
-  isRecurring: z.boolean().default(false),
+  isRecurring: z.boolean(),
 });
 
 export type AddTransactionFormValues = z.infer<typeof formSchema>;

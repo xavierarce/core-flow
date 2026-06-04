@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
-import { AppButton } from "./AppButton";
+import { AppButton } from "./AppButton/AppButton";
 
 export const ThemeToggle = () => {
   const { theme, setTheme } = useTheme();

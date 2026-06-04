@@ -8,10 +8,7 @@ import { CategoriesService } from "@/services/categories.service";
 import { Account, Transaction } from "@/types";
 
 import { PageHeader } from "@/components/layout/PageHeader";
-import { TransactionList, AppCard } from "@/components/shared";
-import { CsvImporter } from "@/components/shared/CsvImporter";
-import { AddTransactionDialog } from "@/components/shared/AddTransactionDialog";
-import { TransactionFilters } from "@/components/shared/TransactionFilters";
+import { TransactionList, AppCard, CsvImporter, AddTransactionDialog, TransactionFilters } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { getAccountIcon } from "@/lib/account.utils";
 
