@@ -119,32 +119,67 @@ catch (e) {
 
 ## File Responsibility — Required
 
-Each file type has one exclusive responsibility. Anything outside that is forbidden.
+Each file type has exactly one role. A file with two roles is wrong — split it.
 
 | File | Allowed | Forbidden |
 |---|---|---|
-| `page.tsx` | Data fetching (server), passing props | Client state, `useEffect`, business logic |
-| `ComponentName.tsx` | JSX + hook calls | `useState`, `useEffect`, standalone functions |
-| `useXxx.ts` | React hooks, state, effects, callbacks | Module-level standalone functions (move to utils) |
-| `types/index.ts` or `*.types.ts` | `type`, `interface`, `enum` | Functions, constants, logic |
-| `utils.ts` or `*.utils.ts` | Pure functions, constants | React hooks, state, JSX |
-| `*.service.ts` | API call functions | Components, hooks |
+| `ComponentName.tsx` | JSX return + calling the component's hook | `interface`, `type`, `useState`, `useEffect`, `const` that isn't the component |
+| `ComponentName.types.ts` | `interface`, `type`, `enum` | Everything else — no functions, no constants, no logic |
+| `ComponentName.utils.ts` | Pure functions, Zod schemas, constants | React hooks, JSX, state |
+| `useComponentName.ts` | All `useState`, `useEffect`, handlers, form logic | Module-level standalone functions (those go to utils) |
+| `page.tsx` | `await auth()`, data fetching, passing props to components | Hooks, client state, business logic |
+| `*.service.ts` | API call functions | Components, hooks, types |
+
+### What belongs where — concrete examples
 
 ```ts
-// ❌ Forbidden — utility function inside a component
-export const MyComponent = (): ReactNode => {
-  const formatDate = (d: Date) => d.toISOString()  // move this out
-  return <div>{formatDate(new Date())}</div>
+// ❌ Wrong — interface declared in a .tsx file
+// AddTransactionDialog.tsx
+interface AddTransactionDialogProps { ... }       // ← move to .types.ts
+const formSchema = z.object({ ... })              // ← move to .utils.ts
+const [open, setOpen] = useState(false)           // ← move to useAddTransactionDialog.ts
+const onSubmit = async (values) => { ... }        // ← move to useAddTransactionDialog.ts
+export const AddTransactionDialog = () => { ... } // ✅ only this stays
+
+// ✅ Correct — one file, one role
+// AddTransactionDialog.types.ts
+export interface AddTransactionDialogProps {
+  accounts: Array<Account>;
+  categories: Array<Category>;
 }
 
-// ✅ Required — utility lives in utils file
-// account.utils.ts
-export const formatDate = (d: Date): string => d.toISOString()
+// AddTransactionDialog.utils.ts
+export const formSchema = z.object({ ... });
 
-// MyComponent.tsx
-import { formatDate } from "@/lib/account.utils"
-export const MyComponent = (): ReactNode => <div>{formatDate(new Date())}</div>
+// useAddTransactionDialog.ts
+export const useAddTransactionDialog = (props: AddTransactionDialogProps) => {
+  const [open, setOpen] = useState(false);
+  const onSubmit = async (values) => { ... };
+  return { open, setOpen, onSubmit, form };
+};
+
+// AddTransactionDialog.tsx  ← JSX only
+import type { AddTransactionDialogProps } from "./AddTransactionDialog.types";
+import { useAddTransactionDialog } from "./useAddTransactionDialog";
+export const AddTransactionDialog = (props: AddTransactionDialogProps) => {
+  const { open, setOpen, onSubmit, form } = useAddTransactionDialog(props);
+  return ( ... JSX only ... );
+};
 ```
+
+### File structure per component
+
+Every non-trivial component (anything with state, forms, or handlers) lives in its own folder:
+
+```
+ComponentName/
+├── ComponentName.tsx          # JSX + hook call only
+├── ComponentName.types.ts     # interfaces and types only
+├── ComponentName.utils.ts     # pure functions, Zod schemas, constants
+└── useComponentName.ts        # all useState, useEffect, handlers
+```
+
+Simple display-only components (no state, no handlers) can stay as a single `.tsx` file — but the moment you add state or a handler, split into the folder structure.
 
 ---
 

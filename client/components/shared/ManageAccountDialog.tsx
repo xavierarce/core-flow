@@ -31,7 +31,8 @@ import {
 import { Account } from "@/types";
 import { PlusCircle, Settings2, Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { AccountsService } from "@/services/accounts.service"; // 👈 Use the service!
+import { useAuth } from "@clerk/nextjs";
+import { AccountsService } from "@/services/accounts.service";
 
 // 1. Define the Schema with Zod
 const formSchema = z.object({
@@ -56,9 +57,10 @@ interface ManageAccountDialogProps {
 export const ManageAccountDialog = ({ account }: ManageAccountDialogProps) => {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false); // 👈 New stateconst router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false);
   const isEditing = !!account;
   const router = useRouter();
+  const { getToken } = useAuth();
 
   // 2. Setup Form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -66,8 +68,7 @@ export const ManageAccountDialog = ({ account }: ManageAccountDialogProps) => {
     defaultValues: {
       name: account?.name || "",
       institution: account?.institution || "",
-      // Cast type to ensure it matches the enum options
-      type: (account?.type as any) || "CASH",
+      type: account?.type ?? "CASH",
       initialBalance: "0",
     },
   });
@@ -76,16 +77,17 @@ export const ManageAccountDialog = ({ account }: ManageAccountDialogProps) => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+
       if (isEditing && account) {
-        // UPDATE MODE
-        await AccountsService.update(account.id, {
+        await AccountsService.update(token, account.id, {
           name: values.name,
           institution: values.institution,
           type: values.type,
         });
       } else {
-        // CREATE MODE
-        await AccountsService.create({
+        await AccountsService.create(token, {
           name: values.name,
           institution: values.institution,
           type: values.type,
@@ -118,7 +120,9 @@ export const ManageAccountDialog = ({ account }: ManageAccountDialogProps) => {
 
     setIsDeleting(true);
     try {
-      await AccountsService.delete(account.id);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      await AccountsService.delete(token, account.id);
       setOpen(false);
       router.refresh();
     } catch (error) {

@@ -8,10 +8,11 @@ import { AppBadge } from "./AppBadge";
 import { TransactionsService } from "@/services/transactions.service";
 import { AppButton } from "./AppButton";
 import { AppSelect } from "./AppSelect";
+import { useAuth } from "@clerk/nextjs";
 
 interface TransactionRowProps {
   transaction: Transaction;
-  categories: Category[];
+  categories: Array<Category>;
 }
 
 export const TransactionRow = ({
@@ -19,6 +20,7 @@ export const TransactionRow = ({
   categories,
 }: TransactionRowProps) => {
   const router = useRouter();
+  const { getToken } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -41,7 +43,9 @@ export const TransactionRow = ({
     if (!confirm("Are you sure you want to delete this?")) return;
     setIsDeleting(true);
     try {
-      await TransactionsService.delete(transaction.id);
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      await TransactionsService.delete(token, transaction.id);
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -53,7 +57,9 @@ export const TransactionRow = ({
   const handleCategoryChange = async (newCategoryId: string) => {
     setIsUpdating(true);
     try {
-      await TransactionsService.update(transaction.id, {
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      await TransactionsService.update(token, transaction.id, {
         categoryId: newCategoryId,
       });
       router.refresh();

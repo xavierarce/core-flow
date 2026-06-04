@@ -2,8 +2,8 @@ import { Transaction, Category } from "@/types";
 import { TransactionRow } from "./TransactionRow";
 
 interface TransactionListProps {
-  transactions: Transaction[];
-  categories: Category[];
+  transactions: Array<Transaction>;
+  categories: Array<Category>;
 }
 
 export const TransactionList = ({

@@ -1,3 +1,5 @@
+import { Transaction } from "@/types";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export interface CreateTransactionParams {
@@ -10,13 +12,15 @@ export interface CreateTransactionParams {
 }
 
 export const TransactionsService = {
-  // Create is fine, it uses fetch
-  async create(data: CreateTransactionParams) {
+  async create(token: string, data: CreateTransactionParams) {
     if (!API_URL) throw new Error("API URL missing");
 
     const res = await fetch(`${API_URL}/transactions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(data),
     });
 
@@ -24,10 +28,13 @@ export const TransactionsService = {
     return res.json();
   },
 
-  async update(id: string, data: Partial<Transaction>) {
+  async update(token: string, id: string, data: Partial<Transaction>) {
     const res = await fetch(`${API_URL}/transactions/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(data),
     });
 
@@ -35,17 +42,15 @@ export const TransactionsService = {
     return res.json();
   },
 
-  async delete(id: string) {
+  async delete(token: string, id: string) {
     if (!API_URL) throw new Error("API URL missing");
 
     const res = await fetch(`${API_URL}/transactions/${id}`, {
       method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
     });
 
-    if (!res.ok) {
-      throw new Error("Failed to delete transaction");
-    }
-
+    if (!res.ok) throw new Error("Failed to delete transaction");
     return true;
   },
 };

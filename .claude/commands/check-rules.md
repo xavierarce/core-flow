@@ -11,41 +11,70 @@ Filter for `.ts` and `.tsx` files in `client/` and `server/src/`.
 
 ## Step 2 — Run greps on each modified file
 
-For each file, run all of these and list every violation:
+**Important:** Always run greps from the repo root (`core-flow/`), not from `client/` or `server/`. The file paths from `git diff` are relative to the repo root and must be used as-is.
 
 ```bash
+# From repo root — collect all modified TS/TSX files
+FILES=$(git diff --name-only HEAD && git diff --cached --name-only | sort -u | grep -E '\.(ts|tsx)$' | grep -v package)
+
+# Run all checks at once across every file:
+
 # Arrow functions — no export function / function declarations
-grep -n "^export function\|^function " <file>
+grep -n "^export function\|^function " $FILES
 
 # T[] notation — must be Array<T>
-grep -n "string\[\]\|number\[\]\|boolean\[\]\|any\[\]" <file>
+grep -n "string\[\]\|number\[\]\|boolean\[\]\|any\[\]" $FILES
 
 # any without eslint-disable
-grep -n ": any\|<any>" <file>
+grep -n ": any\b\|<any>" $FILES
 
 # console.log
-grep -n "console\.log" <file>
+grep -n "console\.log" $FILES
 
 # Direct shadcn/ui imports (must go through @/components/shared)
-grep -n 'from "@/components/ui/' <file>
+grep -n 'from "@/components/ui/' $FILES
 
 # Hardcoded color tokens (should use semantic tokens)
-grep -n "text-gray-\|bg-gray-\|text-slate-\|bg-slate-\|bg-white\b" <file>
+grep -n "text-gray-\|bg-gray-\|text-slate-\|bg-slate-\|bg-white\b" $FILES
 
-# Functions in types files (*.types.ts) — move to utils
-grep -n "^export const\|^export function\|^const\|^function " <file>   # only for *.types.ts
+# Functions in types files — move to utils (run only on *.types.ts and types/index.ts)
+grep -n "^export const\|^export function\|^const\|^function " $(echo $FILES | tr ' ' '\n' | grep -E '\.types\.ts$|types/index\.ts$')
 
-# Module-level standalone functions in hook files (use*.ts) — move to utils
-grep -n "^const \|^function " <file>   # only for use*.ts
+# Module-level standalone functions in hook files — move to utils
+grep -n "^const \|^function " $(echo $FILES | tr ' ' '\n' | grep -E 'use[A-Z].*\.ts$')
 ```
 
-**File responsibility rules — check manually:**
+**File responsibility — greps that catch violations:**
 
-- `page.tsx` → server component: data fetch + prop passing ONLY. No hooks, no `useEffect`.
-- `ComponentName.tsx` → JSX + hook calls ONLY. No `useState`, `useEffect`, standalone functions.
-- `useXxx.ts` → hooks, state, effects, callbacks. No module-level standalone functions.
-- `types/index.ts` / `*.types.ts` → only `type`, `interface`, `enum`. Nothing else.
-- `*.service.ts` → API functions only. Every auth method takes `token` as first param.
+```bash
+# interfaces or type aliases declared inside .tsx files (move to .types.ts)
+grep -rn "^interface \|^export interface \|^type \w\+ =\|^export type \w\+ =" \
+  $(echo $FILES | tr ' ' '\n' | grep '\.tsx$')
+
+# useState / useEffect / useCallback / useRef / useMemo directly in .tsx (move to useXxx.ts)
+grep -rn "useState\|useEffect\|useCallback\|useRef\|useMemo\|useForm\|useRouter\b\|useAuth\b" \
+  $(echo $FILES | tr ' ' '\n' | grep '\.tsx$') | grep -v "use[A-Z].*\.ts"
+
+# const declarations at module level in .tsx that are NOT the component export
+# (Zod schemas, helper constants — move to .utils.ts)
+grep -n "^const \|^export const " \
+  $(echo $FILES | tr ' ' '\n' | grep '\.tsx$') | grep -v "export const [A-Z]"
+
+# anything other than type/interface/enum in .types.ts files
+grep -n "^export const\|^export function\|^const\|^function\|^import " \
+  $(echo $FILES | tr ' ' '\n' | grep '\.types\.ts$')
+
+# useState/useEffect/JSX in .utils.ts files
+grep -n "useState\|useEffect\|return (" \
+  $(echo $FILES | tr ' ' '\n' | grep '\.utils\.ts$')
+```
+
+**Manual checks (can't be grepped precisely):**
+
+- Every component with state or handlers must have a companion `useComponentName.ts`
+- The `.tsx` file should only contain the JSX return and one hook call
+- `*.types.ts` — zero functions, zero constants, zero logic
+- `*.utils.ts` — zero React hooks, zero JSX
 
 **Auth patterns to verify:**
 
@@ -55,8 +84,10 @@ grep -n "^const \|^function " <file>   # only for use*.ts
 
 ## Step 3 — Run ESLint
 
+Run from the `client/` directory, passing paths relative to it:
+
 ```bash
-git diff --name-only HEAD | grep -E '\.(ts|tsx)$' | while read f; do [ -f "$f" ] && echo "$f"; done | xargs npx eslint 2>&1
+cd client && npm run lint 2>&1
 ```
 
 Zero errors required. Fix every ESLint error — including pre-existing ones in files you touched.

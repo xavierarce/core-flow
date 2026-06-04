@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Account } from "@/types";
+import type { Account } from "@/types";
 import {
   Select,
   SelectContent,
@@ -21,154 +21,142 @@ import {
 } from "@/components/ui/select";
 import { Upload, FileText, Check, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 
 interface CsvImporterProps {
-  accounts: Account[];
+  accounts: Array<Account>;
 }
+
+interface ParsedTransaction {
+  date: string;
+  description: string;
+  rawText: string | null;
+  amount: number;
+}
+
+type CsvRow = Record<string, string>;
+
+// Helper: Find a value in a row by fuzzy matching column names.
+// Makes it robust against encoding variants like "Détail" vs "Detail".
+const getValue = (row: CsvRow, searchTerms: Array<string>): string | null => {
+  const keys = Object.keys(row);
+  for (const term of searchTerms) {
+    const foundKey = keys.find((key) =>
+      key.toLowerCase().includes(term.toLowerCase())
+    );
+    if (foundKey && row[foundKey]) {
+      return row[foundKey];
+    }
+  }
+  return null;
+};
+
+const parseRows = (rows: Array<CsvRow>): Array<ParsedTransaction> => {
+  return rows
+    .map((row) => {
+      const dateRaw = getValue(row, ["Date"]);
+      const labelRaw = getValue(row, ["tail", "Detail", "Libell", "Desc", "Label"]);
+      const amountRaw = getValue(row, ["Montant", "Amount", "Debit", "Credit"]);
+
+      if (!dateRaw || !amountRaw) return null;
+
+      const [day, month, year] = dateRaw.split("/");
+      const isoDate = `${year}-${month}-${day}`;
+
+      if (new Date(isoDate).toString() === "Invalid Date") return null;
+
+      // French number format: "-2,50" → JS -2.50
+      const cleanAmount = amountRaw.replace(",", ".").replace(/\s/g, "");
+      const amount = parseFloat(cleanAmount);
+
+      if (isNaN(amount)) return null;
+
+      return {
+        date: new Date(isoDate).toISOString(),
+        description: labelRaw ?? "Imported Transaction",
+        rawText: labelRaw,
+        amount,
+      };
+    })
+    .filter((tx): tx is ParsedTransaction => tx !== null);
+};
 
 export const CsvImporter = ({ accounts }: CsvImporterProps) => {
   const router = useRouter();
+  const { getToken } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState(
-    accounts[0]?.id || ""
+    accounts[0]?.id ?? ""
   );
-  const [parsedData, setParsedData] = useState<any[]>([]);
+  const [parsedData, setParsedData] = useState<Array<ParsedTransaction>>([]);
   const [error, setError] = useState("");
 
-  // Helper: Find a value in a row by fuzzy matching column names
-  // This makes it robust against "Détail" vs "Detail" vs "DÃ©tail" (encoding errors)
-  const getValue = (row: any, searchTerms: string[]) => {
-    const keys = Object.keys(row);
-    for (const term of searchTerms) {
-      // Find a key that contains the search term (case insensitive)
-      const foundKey = keys.find((key) =>
-        key.toLowerCase().includes(term.toLowerCase())
-      );
-      if (foundKey && row[foundKey]) {
-        return row[foundKey];
-      }
-    }
-    return null;
-  };
+  const onDrop = useCallback(
+    (acceptedFiles: Array<File>) => {
+      const file = acceptedFiles[0];
+      setError("");
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    setError("");
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
 
-    // 1. Read as UTF-8 (Standard for modern exports)
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
+        if (!text) {
+          setError("File is empty");
+          return;
+        }
 
-      if (!text) {
-        setError("File is empty");
-        return;
-      }
+        // SG Export: find the real header line (some exports have metadata rows before it)
+        const lines = text.split(/\r\n|\n/);
+        const headerIndex = lines.findIndex(
+          (line) =>
+            line.toLowerCase().startsWith("date") || line.includes("Date de")
+        );
 
-      // SG Export Hack: Find the real header line
-      const lines = text.split(/\r\n|\n/);
-      const headerIndex = lines.findIndex(
-        (line) =>
-          line.toLowerCase().startsWith("date") || line.includes("Date de")
-      );
+        if (headerIndex === -1) {
+          setError("Could not find valid headers (Date, Montant, etc.)");
+          return;
+        }
 
-      if (headerIndex === -1) {
-        setError("Could not find valid headers (Date, Montant, etc.)");
-        return;
-      }
+        const cleanCsv = lines.slice(headerIndex).join("\n");
 
-      const cleanCsv = lines.slice(headerIndex).join("\n");
+        Papa.parse<CsvRow>(cleanCsv, {
+          header: true,
+          delimiter: ";",
+          skipEmptyLines: true,
+          complete: (results) => {
+            if (results.data.length > 0) {
+              setParsedData(parseRows(results.data));
+            } else {
+              setError("File appears empty after cleaning.");
+            }
+          },
+          error: (err: Error) => {
+            setError("Failed to parse CSV: " + err.message);
+          },
+        });
+      };
 
-      Papa.parse(cleanCsv, {
-        header: true,
-        delimiter: ";", // SG uses semi-colons
-        skipEmptyLines: true,
-        complete: (results) => {
-          if (results.data.length > 0) {
-            parseRows(results.data);
-          } else {
-            setError("File appears empty after cleaning.");
-          }
-        },
-        error: (err: any) => {
-          setError("Failed to parse CSV: " + err.message);
-        },
-      });
-    };
-
-    reader.readAsText(file, "UTF-8");
-  }, []);
-
-  const parseRows = (rows: any[]) => {
-    try {
-      const formatted = rows
-        .map((row: any) => {
-          // 2. Fuzzy Match Columns
-          // We look for 'tail' to match 'Détail', 'belle' for 'Libellé'
-          const dateRaw = getValue(row, ["Date"]);
-          const labelRaw = getValue(row, [
-            "tail",
-            "Detail",
-            "Libell",
-            "Desc",
-            "Label",
-          ]);
-          const noteRaw = getValue(row, ["Libell", "Label"]); // Fallback for extra info
-          const amountRaw = getValue(row, [
-            "Montant",
-            "Amount",
-            "Debit",
-            "Credit",
-          ]);
-
-          if (!dateRaw || !amountRaw) return null;
-
-          // 3. Fix Date (DD/MM/YYYY -> YYYY-MM-DD)
-          const [day, month, year] = dateRaw.split("/");
-          const isoDate = `${year}-${month}-${day}`;
-
-          if (new Date(isoDate).toString() === "Invalid Date") return null;
-
-          // 4. Fix Amount (French "-2,50" -> JS -2.50)
-          const cleanAmount = amountRaw.replace(",", ".").replace(/\s/g, "");
-          const amount = parseFloat(cleanAmount);
-
-          if (isNaN(amount)) return null;
-
-          return {
-            date: new Date(isoDate).toISOString(),
-            description: labelRaw || "Imported Transaction",
-            rawText: labelRaw, //
-            amount: amount,
-          };
-        })
-        .filter((tx) => tx !== null);
-
-      setParsedData(formatted);
-    } catch (e) {
-      console.error(e);
-      setError("Error mapping data. Check console.");
-    }
-  };
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { "text/csv": [".csv"] },
-    maxFiles: 1,
-  });
+      reader.readAsText(file, "UTF-8");
+    },
+    []
+  );
 
   const handleImport = async () => {
     if (!selectedAccountId || parsedData.length === 0) return;
     setLoading(true);
 
     try {
+      const token = await getToken();
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const res = await fetch(
         `${API_URL}/transactions/${selectedAccountId}/import`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify(parsedData),
         }
       );
@@ -179,12 +167,18 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
       setParsedData([]);
       router.refresh();
     } catch (err) {
-      console.error(err);
-      setError("Server error during import.");
+      const message = err instanceof Error ? err.message : "Server error during import.";
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { "text/csv": [".csv"] },
+    maxFiles: 1,
+  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -193,7 +187,7 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
           <Upload size={16} /> Import CSV
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] bg-white text-slate-900">
+      <DialogContent className="sm:max-w-[500px] bg-card text-foreground">
         <DialogHeader>
           <DialogTitle>Import Bank History</DialogTitle>
         </DialogHeader>
@@ -208,7 +202,7 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
               <SelectTrigger>
                 <SelectValue placeholder="Target Account" />
               </SelectTrigger>
-              <SelectContent className="bg-white">
+              <SelectContent>
                 {accounts.map((acc) => (
                   <SelectItem key={acc.id} value={acc.id}>
                     {acc.name}
@@ -223,16 +217,12 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
               {...getRootProps()}
               className={`
                 border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors
-                ${
-                  isDragActive
-                    ? "border-emerald-500 bg-emerald-50"
-                    : "border-slate-300 hover:bg-slate-50"
-                }
-                ${error ? "border-red-300 bg-red-50" : ""}
+                ${isDragActive ? "border-emerald-500 bg-emerald-500/10" : "border-border hover:bg-muted/40"}
+                ${error ? "border-destructive bg-destructive/10" : ""}
               `}
             >
               <input {...getInputProps()} />
-              <div className="flex flex-col items-center gap-2 text-slate-500">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <FileText size={32} />
                 {isDragActive ? (
                   <p>Drop the file here...</p>
@@ -242,16 +232,14 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
               </div>
             </div>
           ) : (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center justify-between">
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="bg-emerald-100 p-2 rounded-full text-emerald-600">
+                <div className="bg-emerald-500/20 p-2 rounded-full text-emerald-400">
                   <Check size={16} />
                 </div>
                 <div>
-                  <p className="font-medium text-emerald-900">
-                    Ready to import
-                  </p>
-                  <p className="text-xs text-emerald-700">
+                  <p className="font-medium text-emerald-400">Ready to import</p>
+                  <p className="text-xs text-emerald-400/70">
                     {parsedData.length} transactions found
                   </p>
                 </div>
@@ -260,7 +248,7 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
                 variant="ghost"
                 size="sm"
                 onClick={() => setParsedData([])}
-                className="text-emerald-700 hover:text-emerald-900"
+                className="text-emerald-400 hover:text-emerald-300"
               >
                 Clear
               </Button>
@@ -268,7 +256,7 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
           )}
 
           {error && (
-            <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded">
+            <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 p-3 rounded">
               <AlertCircle size={16} /> {error}
             </div>
           )}
@@ -276,7 +264,7 @@ export const CsvImporter = ({ accounts }: CsvImporterProps) => {
           <Button
             onClick={handleImport}
             disabled={loading || parsedData.length === 0}
-            className="w-full bg-slate-900 text-white hover:bg-slate-800"
+            className="w-full"
           >
             {loading ? "Importing..." : "Confirm Import"}
           </Button>

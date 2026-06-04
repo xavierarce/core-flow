@@ -4,7 +4,7 @@ export * from "./TransactionRow";
 export * from "./TransactionList";
 export * from "./WealthChart";
 export * from "./CashFlowChart";
-export * from "./AddTransactionDialog";
+export * from "./AddTransactionDialog/AddTransactionDialog";
 export * from "./AppInput";
 export * from "./AppSelect";
 export * from "./AppButton";

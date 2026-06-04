@@ -1,3 +1,4 @@
+import type { User } from '@prisma/client';
 import {
   Controller,
   Get,
@@ -6,40 +7,48 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { AuthGuard } from '../auth/auth.guard';
+import { CurrentUser } from '../auth/user.decorator';
 
 @Controller('categories')
+@UseGuards(AuthGuard)
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
-  create(@Body() createCategoryDto: CreateCategoryDto) {
-    return this.categoriesService.create(createCategoryDto);
+  create(
+    @CurrentUser() user: User,
+    @Body() createCategoryDto: CreateCategoryDto,
+  ) {
+    return this.categoriesService.create(user.id, createCategoryDto);
   }
 
   @Get()
-  findAll() {
-    return this.categoriesService.findAll();
+  findAll(@CurrentUser() user: User) {
+    return this.categoriesService.findAll(user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.categoriesService.findOne(+id);
+  findOne(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.categoriesService.findOne(user.id, id);
   }
 
   @Patch(':id')
   update(
+    @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
-    return this.categoriesService.update(+id, updateCategoryDto);
+    return this.categoriesService.update(user.id, id, updateCategoryDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.categoriesService.remove(+id);
+  remove(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.categoriesService.remove(user.id, id);
   }
 }

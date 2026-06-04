@@ -1,7 +1,7 @@
 export interface Category {
   id: string;
   name: string;
-  type: string; // "EXPENSE" | "INCOME"
+  type: "EXPENSE" | "INCOME";
   color: string;
   icon?: string;
 }
@@ -13,7 +13,6 @@ export interface Transaction {
   date: string;
   isRecurring?: boolean;
   source?: "MANUAL" | "BANK";
-
   category?: Category;
   categoryId?: string;
 }
@@ -25,6 +24,18 @@ export interface Account {
   institution: string;
   currency: string;
   balance: number | string;
-  type: "CASH" | "SAVINGS" | "INVESTMENT" | "TRADING";
+  type: "CASH" | "SAVINGS" | "INVESTMENT" | "TRADING" | "CRYPTO" | "REAL_ESTATE";
   transactions: Transaction[];
+}
+
+export interface Rule {
+  id: string;
+  keyword: string;
+  categoryId: string;
+  userId: string;
+  category: {
+    id: string;
+    name: string;
+    color: string;
+  };
 }

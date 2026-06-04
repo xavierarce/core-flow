@@ -3,35 +3,26 @@ import { cn } from "@/lib/utils";
 import { ComponentProps } from "react";
 
 interface AppButtonProps extends ComponentProps<typeof Button> {
-  // Make this optional so we can skip it and use standard Shadcn variants
   variantType?: "primary" | "secondary" | "danger" | "outline";
 }
+
+const VARIANT_STYLES = {
+  primary: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm",
+  secondary: "bg-foreground text-background hover:bg-foreground/90 shadow-sm",
+  danger: "bg-destructive hover:bg-destructive/90 text-white shadow-sm",
+  outline:
+    "border border-border hover:bg-accent text-foreground bg-transparent",
+} as const;
 
 export const AppButton = ({
   className,
   variantType,
-  variant, // Destructure variant so we can check it
+  variant,
   ...props
-}: AppButtonProps) => {
-  // Banking specific overrides
-  const customStyles = {
-    primary: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm",
-    secondary: "bg-slate-900 hover:bg-slate-800 text-white shadow-sm",
-    danger: "bg-red-600 hover:bg-red-700 text-white shadow-sm",
-    outline: "border-slate-200 hover:bg-slate-50 text-slate-900 bg-transparent",
-  };
-
-  // If variantType is passed, use the custom style.
-  // Otherwise, pass undefined to className so Shadcn handles the styling via the 'variant' prop.
-  const customClass = variantType ? customStyles[variantType] : "";
-
-  return (
-    <Button
-      // If we use a variantType, we force the 'default' variant structure but override colors
-      // If no variantType, we pass the 'variant' prop through (e.g. ghost, link)
-      variant={variantType ? "default" : variant}
-      className={cn(customClass, className)}
-      {...props}
-    />
-  );
-};
+}: AppButtonProps) => (
+  <Button
+    variant={variantType ? "default" : variant}
+    className={cn(variantType ? VARIANT_STYLES[variantType] : "", className)}
+    {...props}
+  />
+);

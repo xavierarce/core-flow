@@ -8,8 +8,8 @@ interface MonthlyData {
 }
 
 export const calculateMonthlyCashFlow = (
-  accounts: Account[]
-): MonthlyData[] => {
+  accounts: Array<Account>
+): Array<MonthlyData> => {
   const monthlyMap = new Map<
     string,
     { income: number; expense: number; dateKey: number }
@@ -55,7 +55,7 @@ export const calculateMonthlyCashFlow = (
 };
 
 // ... keep calculateExpenseBreakdown as is, it was already correct
-export const calculateExpenseBreakdown = (accounts: Account[]) => {
+export const calculateExpenseBreakdown = (accounts: Array<Account>) => {
   const breakdown: Record<
     string,
     { name: string; value: number; color: string }

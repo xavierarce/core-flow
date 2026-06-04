@@ -1,30 +1,38 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
 export class CategoriesService {
-  // 👇 2. Add the Constructor to inject Prisma
   constructor(private prisma: PrismaService) {}
 
-  create(createCategoryDto: any) {
-    return 'This action adds a new category';
+  create(userId: string, dto: CreateCategoryDto) {
+    return this.prisma.category.create({
+      data: { ...dto, userId },
+    });
   }
 
-  findAll() {
+  findAll(userId: string) {
     return this.prisma.category.findMany({
+      where: { userId },
       orderBy: { name: 'asc' },
     });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} category`;
+  async findOne(userId: string, id: string) {
+    const category = await this.prisma.category.findUnique({ where: { id } });
+    if (!category || category.userId !== userId) throw new NotFoundException();
+    return category;
   }
 
-  update(id: number, updateCategoryDto: any) {
-    return `This action updates a #${id} category`;
+  async update(userId: string, id: string, dto: UpdateCategoryDto) {
+    await this.findOne(userId, id);
+    return this.prisma.category.update({ where: { id }, data: dto });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} category`;
+  async remove(userId: string, id: string) {
+    await this.findOne(userId, id);
+    return this.prisma.category.delete({ where: { id } });
   }
 }

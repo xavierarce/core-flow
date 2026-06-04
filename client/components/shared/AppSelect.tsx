@@ -19,7 +19,7 @@ interface AppSelectProps {
   placeholder?: string;
   value: string;
   onChange: (value: string) => void;
-  options: SelectOption[];
+  options: Array<SelectOption>;
   disabled?: boolean;
   className?: string;
   triggerClassName?: string;

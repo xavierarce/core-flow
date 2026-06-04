@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCategoryRuleDto } from './dto/create-category-rule.dto';
 import { UpdateCategoryRuleDto } from './dto/update-category-rule.dto';
@@ -7,30 +7,38 @@ import { UpdateCategoryRuleDto } from './dto/update-category-rule.dto';
 export class CategoryRulesService {
   constructor(private prisma: PrismaService) {}
 
-  create(createCategoryRuleDto: CreateCategoryRuleDto) {
-    return 'This action adds a new categoryRule';
-  }
-
-  // 1. Get all rules (and include the category details so we can see the color)
-  findAll() {
-    return this.prisma.categoryRule.findMany({
+  create(userId: string, dto: CreateCategoryRuleDto) {
+    return this.prisma.categoryRule.create({
+      data: { ...dto, userId },
       include: { category: true },
-      orderBy: { createdAt: 'desc' }, // Newest rules first
     });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} categoryRule`;
+  findAll(userId: string) {
+    return this.prisma.categoryRule.findMany({
+      where: { userId },
+      include: { category: true },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
-  update(id: number, updateCategoryRuleDto: UpdateCategoryRuleDto) {
-    return `This action updates a #${id} categoryRule`;
+  async findOne(userId: string, id: string) {
+    const rule = await this.prisma.categoryRule.findUnique({ where: { id } });
+    if (!rule || rule.userId !== userId) throw new NotFoundException();
+    return rule;
   }
 
-  // 2. Delete a rule
-  remove(id: string) {
-    return this.prisma.categoryRule.delete({
+  async update(userId: string, id: string, dto: UpdateCategoryRuleDto) {
+    await this.findOne(userId, id);
+    return this.prisma.categoryRule.update({
       where: { id },
+      data: dto,
+      include: { category: true },
     });
+  }
+
+  async remove(userId: string, id: string) {
+    await this.findOne(userId, id);
+    return this.prisma.categoryRule.delete({ where: { id } });
   }
 }
