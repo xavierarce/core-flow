@@ -1,6 +1,8 @@
-import type { GraphNodeId, GraphEdgeKind } from "@/types/registry.types";
+import type { GraphNodeId, GraphEdgeKind, AppRoutePath } from "@/types/registry.types";
 import type { GraphEdge } from "@/types/registry.types";
-import { GRAPH_EDGES } from "@/registry/graph.registry";
+import { GRAPH_EDGES, ROUTE_TO_GRAPH_NODE } from "@/registry/graph.registry";
+
+export const ROUTE_IDS: Array<AppRoutePath> = Object.keys(ROUTE_TO_GRAPH_NODE) as Array<AppRoutePath>;
 
 export const MAX_DEPTH = 6;
 

@@ -1,26 +1,6 @@
-"use client";
+import type { Layer } from "./ArchitectureGraph.types";
 
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
-
-interface LayerNode {
-  label: string;
-  detail?: string;
-  color?: string;
-}
-
-interface Layer {
-  id: string;
-  title: string;
-  subtitle: string;
-  color: string;
-  textColor: string;
-  bgClass: string;
-  borderClass: string;
-  nodes: Array<LayerNode>;
-}
-
-const LAYERS: Array<Layer> = [
+export const LAYERS: Array<Layer> = [
   {
     id: "browser",
     title: "Browser",
@@ -49,11 +29,7 @@ const LAYERS: Array<Layer> = [
       { label: "Server Components", detail: "auth() + data fetch → props" },
       { label: "Client Components", detail: "useAuth() + mutations" },
       { label: "Route group (app)", detail: "Navbar + shell layout" },
-      {
-        label: "Page server components",
-        detail:
-          "6 routes: /, /transactions, /assets, /accounts, /settings, /docs",
-      },
+      { label: "Page server components", detail: "6 routes: /, /transactions, /assets, /accounts, /settings, /docs" },
     ],
   },
   {
@@ -115,10 +91,7 @@ const LAYERS: Array<Layer> = [
       { label: "Account", detail: "type, balance, currency, isAutomated" },
       { label: "Transaction", detail: "amount, date, source, isRecurring" },
       { label: "Category", detail: "name, type, color, icon" },
-      {
-        label: "CategoryRule",
-        detail: "keyword → category, unique(keyword,userId)",
-      },
+      { label: "CategoryRule", detail: "keyword → category, unique(keyword,userId)" },
     ],
   },
   {
@@ -130,91 +103,9 @@ const LAYERS: Array<Layer> = [
     bgClass: "bg-purple-500/10",
     borderClass: "border-purple-500/30",
     nodes: [
-      {
-        label: "Cascading deletes",
-        detail: "account delete → all transactions deleted",
-      },
-      {
-        label: "Unique constraints",
-        detail: "(keyword, userId), (name, userId)",
-      },
+      { label: "Cascading deletes", detail: "account delete → all transactions deleted" },
+      { label: "Unique constraints", detail: "(keyword, userId), (name, userId)" },
       { label: "Foreign keys", detail: "all models reference User.id" },
     ],
   },
 ];
-
-const Arrow = ({ color }: { color: string }) => (
-  <div className="flex justify-center items-center py-1">
-    <div className="flex flex-col items-center gap-0">
-      <div
-        className="w-px h-5"
-        style={{ backgroundColor: color, opacity: 0.4 }}
-      />
-      <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
-        <path d="M5 6L0 0H10L5 6Z" fill={color} fillOpacity={0.4} />
-      </svg>
-    </div>
-  </div>
-);
-
-export const ArchitectureGraph = () => {
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  if (!mounted)
-    return <div className="h-64 bg-muted/20 rounded-lg animate-pulse" />;
-
-  const isDark = resolvedTheme === "dark";
-
-  return (
-    <div className="space-y-0">
-      {LAYERS.map((layer, i) => (
-        <div key={layer.id}>
-          <div
-            className={`rounded-xl border p-4 ${layer.bgClass} ${layer.borderClass}`}
-          >
-            {/* Layer header */}
-            <div className="flex items-baseline gap-3 mb-3">
-              <span className={`text-sm font-bold ${layer.textColor}`}>
-                {layer.title}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {layer.subtitle}
-              </span>
-            </div>
-
-            {/* Nodes */}
-            <div className="flex flex-wrap gap-2">
-              {layer.nodes.map((node) => (
-                <div
-                  key={node.label}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs"
-                  style={{
-                    backgroundColor: isDark
-                      ? `${layer.color}18`
-                      : `${layer.color}12`,
-                    borderColor: `${layer.color}35`,
-                  }}
-                >
-                  <span className="font-medium text-foreground">
-                    {node.label}
-                  </span>
-                  {node.detail && (
-                    <span className="text-muted-foreground hidden sm:inline">
-                      — {node.detail}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {i < LAYERS.length - 1 && <Arrow color={LAYERS[i + 1].color} />}
-        </div>
-      ))}
-    </div>
-  );
-};
