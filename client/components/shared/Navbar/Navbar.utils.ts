@@ -1,4 +1,4 @@
-import { LayoutDashboard, CreditCard, Landmark, Wallet } from "lucide-react";
+import { LayoutDashboard, CreditCard, Landmark, Wallet, BookOpen } from "lucide-react";
 
 /**
  * @function NAV_LINKS
@@ -9,4 +9,5 @@ export const NAV_LINKS = [
   { name: "Transactions", href: "/transactions", icon: CreditCard },
   { name: "Wealth", href: "/assets", icon: Landmark },
   { name: "Accounts", href: "/accounts", icon: Wallet },
+  { name: "Docs", href: "/docs", icon: BookOpen },
 ];
