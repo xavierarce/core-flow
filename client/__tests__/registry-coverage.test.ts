@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readdirSync, existsSync } from "fs";
+import { readdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { ROUTES_REGISTRY } from "../registry/routes.registry";
 import { MODULES_REGISTRY } from "../registry/modules.registry";
@@ -14,37 +14,42 @@ import type { AppRoutePath, ServerModuleKey } from "../types/registry.types";
 const CLIENT_ROOT = join(__dirname, "..");
 const APP_DIR = join(CLIENT_ROOT, "app/(app)");
 const SERVER_ROOT = join(CLIENT_ROOT, "../server/src");
+const PRISMA_SCHEMA = join(CLIENT_ROOT, "../server/prisma/schema.prisma");
+
+// ─── Recursive page.tsx collector ────────────────────────────────────────────
+// Skips Next.js route groups (e.g. (dashboard)) and private folders (_x)
+
+const collectPageRoutes = (dir: string, routePrefix: string): Array<string> => {
+  if (!existsSync(dir)) return [];
+  const routes: Array<string> = [];
+
+  if (existsSync(join(dir, "page.tsx"))) {
+    routes.push(routePrefix === "" ? "/" : routePrefix);
+  }
+
+  const entries = readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith("(") || entry.name.startsWith("_")) continue;
+    routes.push(...collectPageRoutes(join(dir, entry.name), `${routePrefix}/${entry.name}`));
+  }
+
+  return routes;
+};
 
 // ─── Route coverage ──────────────────────────────────────────────────────────
 
 describe("Route registry coverage", () => {
-  it("every page.tsx in app/(app) has a ROUTES_REGISTRY entry", () => {
-    if (!existsSync(APP_DIR)) return;
-
-    const dirs = readdirSync(APP_DIR, { withFileTypes: true });
-    const missing: Array<string> = [];
-
-    // Root route (app/(app)/page.tsx)
-    if (existsSync(join(APP_DIR, "page.tsx")) && !("/" in ROUTES_REGISTRY)) {
-      missing.push("/");
-    }
-
-    // Sub-routes (app/(app)/[name]/page.tsx)
-    for (const entry of dirs) {
-      if (!entry.isDirectory()) continue;
-      const pagePath = join(APP_DIR, entry.name, "page.tsx");
-      if (!existsSync(pagePath)) continue;
-      const route = `/${entry.name}` as AppRoutePath;
-      if (!(route in ROUTES_REGISTRY)) {
-        missing.push(route);
-      }
-    }
+  it("every page.tsx in app/(app) has a ROUTES_REGISTRY entry (recursive scan)", () => {
+    const allRoutes = collectPageRoutes(APP_DIR, "");
+    const missing = allRoutes.filter(r => !(r in ROUTES_REGISTRY));
 
     expect(
       missing,
       `\nMISSING REGISTRY ENTRIES — these routes have a page.tsx but no documentation:\n` +
-        missing.map((r) => `  → "${r}" — add to AppRoutePath (types/registry.types.ts) and ROUTES_REGISTRY (registry/routes.registry.ts)`).join("\n") +
-        "\n"
+        missing.map(r =>
+          `  → "${r}" — add to AppRoutePath (types/registry.types.ts) and ROUTES_REGISTRY (registry/routes.registry.ts)`
+        ).join("\n") + "\n"
     ).toHaveLength(0);
   });
 
@@ -70,14 +75,14 @@ describe("Server module registry coverage", () => {
     const dirs = readdirSync(SERVER_ROOT, { withFileTypes: true });
     const missing: Array<string> = [];
 
-    const SKIP = new Set(["auth", "prisma", "docs"]); // infrastructure modules, not business modules
+    const SKIP = new Set(["auth", "prisma", "docs"]);
 
     for (const entry of dirs) {
       if (!entry.isDirectory()) continue;
       if (SKIP.has(entry.name)) continue;
 
       const controllerGlob = existsSync(join(SERVER_ROOT, entry.name, `${entry.name}.controller.ts`));
-      if (!controllerGlob) continue; // not a module dir
+      if (!controllerGlob) continue;
 
       const key = entry.name as ServerModuleKey;
       if (!(key in MODULES_REGISTRY)) {
@@ -88,8 +93,9 @@ describe("Server module registry coverage", () => {
     expect(
       missing,
       `\nMISSING MODULE REGISTRY ENTRIES — these NestJS modules have no documentation:\n` +
-        missing.map((m) => `  → "${m}" — add to ServerModuleKey (types/registry.types.ts) and MODULES_REGISTRY (registry/modules.registry.ts)`).join("\n") +
-        "\n"
+        missing.map(m =>
+          `  → "${m}" — add to ServerModuleKey (types/registry.types.ts) and MODULES_REGISTRY (registry/modules.registry.ts)`
+        ).join("\n") + "\n"
     ).toHaveLength(0);
   });
 
@@ -104,6 +110,49 @@ describe("Server module registry coverage", () => {
         doc.description.length,
         `MODULES_REGISTRY["${key}"].description is too short — write a real description`
       ).toBeGreaterThan(30);
+    }
+  });
+});
+
+// ─── Prisma schema coverage ───────────────────────────────────────────────────
+// Reads schema.prisma, extracts model names, verifies each has a graph node.
+// Node path convention: "server/prisma/schema.prisma:ModelName"
+
+describe("Prisma schema coverage", () => {
+  it("every Prisma model has a graph node (path: schema.prisma:ModelName)", () => {
+    if (!existsSync(PRISMA_SCHEMA)) return;
+
+    const schema = readFileSync(PRISMA_SCHEMA, "utf-8");
+    const modelNames = [...schema.matchAll(/^model (\w+)/gm)].map(m => m[1]);
+    const missing: Array<string> = [];
+
+    for (const model of modelNames) {
+      const hasNode = GRAPH_NODES.some(n => n.path.includes(`schema.prisma:${model}`));
+      if (!hasNode) missing.push(model);
+    }
+
+    expect(
+      missing,
+      `\nPRISMA MODELS WITH NO GRAPH NODE — add a node to GRAPH_NODES_MAP in registry/graph.registry.ts\n` +
+        `  Node path must contain "server/prisma/schema.prisma:ModelName"\n` +
+        missing.map(m =>
+          `  → model ${m} — add GraphNodeId + node with path: "server/prisma/schema.prisma:${m}"`
+        ).join("\n") + "\n"
+    ).toHaveLength(0);
+  });
+
+  it("every Prisma model node has non-empty role, plain, and path", () => {
+    if (!existsSync(PRISMA_SCHEMA)) return;
+
+    const schema = readFileSync(PRISMA_SCHEMA, "utf-8");
+    const modelNames = [...schema.matchAll(/^model (\w+)/gm)].map(m => m[1]);
+
+    for (const model of modelNames) {
+      const node = GRAPH_NODES.find(n => n.path.includes(`schema.prisma:${model}`));
+      if (!node) continue;
+
+      expect(node.role, `Graph node for Prisma model "${model}" is missing role`).toBeTruthy();
+      expect(node.plain, `Graph node for Prisma model "${model}" is missing plain`).toBeTruthy();
     }
   });
 });
@@ -174,8 +223,9 @@ describe("API registry completeness", () => {
     expect(
       unguarded,
       `\nUNGUARDED ENDPOINTS DETECTED — these endpoints have guarded: false:\n` +
-        unguarded.map((ep) => `  → ${ep.method} ${ep.path} — is this intentionally public? If so, add a note in api.registry.ts explaining why.`).join("\n") +
-        "\n"
+        unguarded.map(ep =>
+          `  → ${ep.method} ${ep.path} — is this intentionally public? If so, add a note in api.registry.ts explaining why.`
+        ).join("\n") + "\n"
     ).toHaveLength(0);
   });
 });
