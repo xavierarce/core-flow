@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { toast } from "sonner";
 import { AccountsService } from "@/services/accounts.service";
 import { formSchema, type ManageAccountFormValues } from "./ManageAccountDialog.utils";
 import type { ManageAccountDialogProps } from "./ManageAccountDialog.types";
@@ -54,9 +55,11 @@ export const useManageAccountDialog = ({ account }: ManageAccountDialogProps) =>
       }
       setOpen(false);
       form.reset();
+      toast.success(isEditing ? "Account updated" : "Account created");
       router.refresh();
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to save account";
+      toast.error(message);
       form.setError("root", { message });
     } finally {
       setIsLoading(false);
@@ -72,9 +75,11 @@ export const useManageAccountDialog = ({ account }: ManageAccountDialogProps) =>
       if (!token) throw new Error("Not authenticated");
       await AccountsService.delete(token, account.id);
       setOpen(false);
+      toast.success("Account deleted");
       router.refresh();
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to delete account";
+      toast.error(message);
       form.setError("root", { message });
     } finally {
       setIsDeleting(false);

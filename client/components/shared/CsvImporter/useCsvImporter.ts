@@ -5,6 +5,7 @@ import { useDropzone } from "react-dropzone";
 import Papa from "papaparse";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { toast } from "sonner";
 import { parseRows } from "./CsvImporter.utils";
 import type { CsvImporterProps, CsvRow, ParsedTransaction } from "./CsvImporter.types";
 
@@ -92,11 +93,14 @@ export const useCsvImporter = ({ accounts }: CsvImporterProps) => {
 
       if (!res.ok) throw new Error("Import failed");
 
+      const count = parsedData.length;
       setOpen(false);
       setParsedData([]);
+      toast.success(`${count} transaction${count !== 1 ? "s" : ""} imported`);
       router.refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Server error during import.";
+      toast.error(message);
       setError(message);
     } finally {
       setLoading(false);

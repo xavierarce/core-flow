@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { toast } from "sonner";
 import { AppCard, AppButton } from "@/components/shared";
 import { CategoriesService } from "@/services/categories.service";
-import { Category } from "@/types";
+import type { Category } from "@/types";
 
 const PRESET_COLORS = [
   "#059669", "#3b82f6", "#8b5cf6", "#f59e0b",
@@ -39,27 +40,42 @@ export const CategoryManager = ({ initialCategories }: CategoryManagerProps) => 
   const saveEdit = async (id: string) => {
     const token = await getToken();
     if (!token) return;
-    const updated = await CategoriesService.update(token, id, editState);
-    setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
-    setEditingId(null);
+    try {
+      const updated = await CategoriesService.update(token, id, editState);
+      setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      setEditingId(null);
+      toast.success("Category updated");
+    } catch {
+      toast.error("Failed to update category");
+    }
   };
 
   const deleteCategory = async (id: string) => {
     if (!confirm("Delete this category? Transactions will be uncategorized.")) return;
     const token = await getToken();
     if (!token) return;
-    await CategoriesService.delete(token, id);
-    setCategories((prev) => prev.filter((c) => c.id !== id));
+    try {
+      await CategoriesService.delete(token, id);
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      toast.success("Category deleted");
+    } catch {
+      toast.error("Failed to delete category");
+    }
   };
 
   const addCategory = async () => {
     if (!newCat.name.trim()) return;
     const token = await getToken();
     if (!token) return;
-    const created = await CategoriesService.create(token, newCat);
-    setCategories((prev) => [...prev, created]);
-    setIsAdding(false);
-    setNewCat({ name: "", color: "#059669", type: "EXPENSE" });
+    try {
+      const created = await CategoriesService.create(token, newCat);
+      setCategories((prev) => [...prev, created]);
+      setIsAdding(false);
+      setNewCat({ name: "", color: "#059669", type: "EXPENSE" });
+      toast.success("Category created");
+    } catch {
+      toast.error("Failed to create category");
+    }
   };
 
   return (

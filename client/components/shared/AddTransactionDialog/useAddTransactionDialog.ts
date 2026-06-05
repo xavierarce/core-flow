@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { toast } from "sonner";
 import { TransactionsService } from "@/services/transactions.service";
 import { formSchema, type AddTransactionFormValues } from "./AddTransactionDialog.utils";
 import type { AddTransactionDialogProps } from "./AddTransactionDialog.types";
@@ -48,9 +49,11 @@ export const useAddTransactionDialog = ({ accounts }: Pick<AddTransactionDialogP
         date: new Date().toISOString().split("T")[0],
         isRecurring: false,
       });
+      toast.success("Transaction saved");
       router.refresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to save transaction";
+      toast.error(message);
       form.setError("root", { message });
     } finally {
       setIsLoading(false);

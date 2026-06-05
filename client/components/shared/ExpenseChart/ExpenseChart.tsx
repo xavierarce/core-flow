@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { useTheme } from "next-themes";
 import { AppCard } from "../AppCard/AppCard";
 import type { ExpenseChartProps } from "./ExpenseChart.types";
 
@@ -17,6 +18,12 @@ import type { ExpenseChartProps } from "./ExpenseChart.types";
  * @param data - Array of data points with name, value, and color.
  */
 export const ExpenseChart = ({ data }: ExpenseChartProps) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  const tooltipBg = isDark ? "#1e293b" : "#ffffff";
+  const tooltipBorder = isDark ? "#334155" : "#e2e8f0";
+
   if (data.length === 0) {
     return (
       <AppCard title="Expenses Breakdown" subtitle="By Category">
@@ -50,9 +57,10 @@ export const ExpenseChart = ({ data }: ExpenseChartProps) => {
                 `€${Number(value ?? 0).toLocaleString()}`
               }
               contentStyle={{
+                backgroundColor: tooltipBg,
                 borderRadius: "8px",
-                border: "none",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                border: `1px solid ${tooltipBorder}`,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
               }}
             />
             <Legend
