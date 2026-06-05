@@ -1,11 +1,13 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AppCard } from "@/components/shared";
+import { AppButton } from "@/components/shared/AppButton/AppButton";
 import { ArchitectureGraph } from "@/components/features/docs/ArchitectureGraph";
 import { ROUTES_REGISTRY } from "@/registry/routes.registry";
 import { MODULES_REGISTRY } from "@/registry/modules.registry";
 import { API_REGISTRY } from "@/registry/api.registry";
 import { ISSUES_REGISTRY } from "@/registry/issues.registry";
-import { CheckCircle2, Circle, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import type { RouteStatus, RouteDoc, ModuleStatus, ServerModuleDoc, Severity, HttpMethod } from "@/types/registry.types";
 
 export const metadata = { title: "Docs — XAC Capital" };
@@ -93,7 +95,7 @@ const Badge = ({ label, className }: { label: string; className: string }) => (
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function DocsPage() {
+const DocsPage = () => {
   const routes = Object.entries(ROUTES_REGISTRY) as Array<[string, RouteDoc]>;
   const modules = Object.entries(MODULES_REGISTRY) as Array<[string, ServerModuleDoc]>;
 
@@ -128,6 +130,11 @@ export default function DocsPage() {
       <AppCard
         title="System Architecture"
         subtitle="Full stack from browser to database — click any layer to see details below"
+        action={
+          <Link href="/docs/map">
+            <AppButton variantType="outline" size="sm">Caller Tree →</AppButton>
+          </Link>
+        }
       >
         <div className="mt-4">
           <ArchitectureGraph />
@@ -359,4 +366,6 @@ export default function DocsPage() {
 
     </div>
   );
-}
+};
+
+export default DocsPage;

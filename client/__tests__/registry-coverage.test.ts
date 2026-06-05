@@ -4,6 +4,11 @@ import { join } from "path";
 import { ROUTES_REGISTRY } from "../registry/routes.registry";
 import { MODULES_REGISTRY } from "../registry/modules.registry";
 import { API_REGISTRY } from "../registry/api.registry";
+import {
+  GRAPH_NODES,
+  ROUTE_TO_GRAPH_NODE,
+  MODULE_TO_GRAPH_NODES,
+} from "../registry/graph.registry";
 import type { AppRoutePath, ServerModuleKey } from "../types/registry.types";
 
 const CLIENT_ROOT = join(__dirname, "..");
@@ -99,6 +104,49 @@ describe("Server module registry coverage", () => {
         doc.description.length,
         `MODULES_REGISTRY["${key}"].description is too short — write a real description`
       ).toBeGreaterThan(30);
+    }
+  });
+});
+
+// ─── Graph registry coverage ─────────────────────────────────────────────────
+
+describe("Graph registry coverage", () => {
+  it("every route in ROUTES_REGISTRY has a ROUTE_TO_GRAPH_NODE mapping", () => {
+    const routeKeys = Object.keys(ROUTES_REGISTRY) as Array<AppRoutePath>;
+    const graphKeys = Object.keys(ROUTE_TO_GRAPH_NODE);
+    const missing = routeKeys.filter(p => !graphKeys.includes(p));
+    expect(
+      missing,
+      `\nROUTES missing from ROUTE_TO_GRAPH_NODE in registry/graph.registry.ts:\n` +
+        missing.map(p => `  → "${p}" — add it to ROUTE_TO_GRAPH_NODE`).join("\n") + "\n"
+    ).toHaveLength(0);
+  });
+
+  it("every module in MODULES_REGISTRY has a MODULE_TO_GRAPH_NODES mapping", () => {
+    const moduleKeys = Object.keys(MODULES_REGISTRY) as Array<ServerModuleKey>;
+    const graphKeys  = Object.keys(MODULE_TO_GRAPH_NODES);
+    const missing    = moduleKeys.filter(k => !graphKeys.includes(k));
+    expect(
+      missing,
+      `\nMODULES missing from MODULE_TO_GRAPH_NODES in registry/graph.registry.ts:\n` +
+        missing.map(k => `  → "${k}" — add it to MODULE_TO_GRAPH_NODES`).join("\n") + "\n"
+    ).toHaveLength(0);
+  });
+
+  it("every graph node has non-empty role, plain, and path", () => {
+    for (const node of GRAPH_NODES) {
+      expect(
+        node.role,
+        `Graph node "${node.id}" is missing role — add a technical description in graph.registry.ts`
+      ).toBeTruthy();
+      expect(
+        node.plain,
+        `Graph node "${node.id}" is missing plain — add a plain-English description`
+      ).toBeTruthy();
+      expect(
+        node.path,
+        `Graph node "${node.id}" is missing path — add the source file path`
+      ).toBeTruthy();
     }
   });
 });

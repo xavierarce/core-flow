@@ -92,4 +92,19 @@ export const ROUTES_REGISTRY = {
       "Known issues tracker",
     ],
   },
+  "/docs/map": {
+    label: "Architecture Map",
+    status: "done",
+    description:
+      "Interactive SVG graph of the full system architecture. Pan, zoom, and click any node to see its role, source path, notes, edges, and known bugs. Backed by a typed registry — adding a route or module without updating the graph causes a TypeScript error.",
+    features: [
+      "Pan and zoom SVG canvas (drag + scroll wheel)",
+      "Click node to open sidebar with role, plain-English description, source path, notes",
+      "Filter by feature area (Overview, Transactions, Auth, Data, etc.)",
+      "Critical path filter highlights the core transaction flow",
+      "Incoming and outgoing edge lists in the sidebar",
+      "Bug and fix count badges from issues registry",
+      "TypeScript-enforced graph completeness — every route and module must map to a graph node",
+    ],
+  },
 } satisfies Record<AppRoutePath, RouteDoc>;
